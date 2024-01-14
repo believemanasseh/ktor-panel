@@ -1,2 +1,2 @@
 # kt-admin
-An admin interface library for Kotlin server-side applications
+An admin interface library for server-side applications in Kotlin.
