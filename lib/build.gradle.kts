@@ -2,6 +2,7 @@ val kotlinVersion: String by project
 
 plugins {
     alias(libs.plugins.jvm)
+    alias(libs.plugins.ktor)
     `java-library`
     `maven-publish`
 }
@@ -14,10 +15,15 @@ repositories {
 }
 
 dependencies {
+    // Test dependencies
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation(libs.junit.jupiter.engine)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Development dependencies
     implementation(libs.guava)
+    implementation("io.ktor:ktor-server-core")
+    implementation("io.ktor:ktor-server-netty")
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api(libs.commons.math3)
