@@ -23,7 +23,6 @@ dependencies {
     // Development dependencies
     implementation(libs.guava)
     implementation("io.ktor:ktor-server-core")
-    implementation("io.ktor:ktor-server-netty")
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api(libs.commons.math3)
