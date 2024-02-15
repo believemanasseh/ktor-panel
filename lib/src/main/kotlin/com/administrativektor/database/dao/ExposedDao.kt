@@ -1,5 +1,6 @@
 package com.administrativektor.database.dao
 
+import com.administrativektor.database.DatabaseAccessObjectInterface
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow

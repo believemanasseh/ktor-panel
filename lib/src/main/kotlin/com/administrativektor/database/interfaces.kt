@@ -1,4 +1,4 @@
-package com.administrativektor.database.dao
+package com.administrativektor.database
 
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ResultRow
