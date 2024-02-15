@@ -1,7 +1,6 @@
 package com.administrativektor
 
-class Main {
-    fun entryPoint(): Unit {
-        return
-    }
-}
+import io.ktor.server.application.*
+
+
+class Admin(val application: Application, val configuration: Configuration)
