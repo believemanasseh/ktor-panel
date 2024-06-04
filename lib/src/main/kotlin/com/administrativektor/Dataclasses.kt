@@ -5,3 +5,5 @@ package com.administrativektor
  * @property setAuthentication Boolean field indicating whether to authenticate users.
  */
 data class Configuration(var setAuthentication: Boolean);
+
+data class View(val name: String)
