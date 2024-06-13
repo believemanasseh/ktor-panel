@@ -1,0 +1,27 @@
+nav.models {
+    display: flex;
+    flex-flow: row nowrap;
+    /*	gap: 20px;*/
+    text-align: center;
+    background-color: #286e9c;
+    height: 5vh;
+}
+
+nav.models li {
+    list-style: none;
+    font-weight: bolder;
+    font-size: 16px;
+    color: white;
+    padding: 15px;
+    cursor: pointer;
+}
+
+nav.models li:active,
+nav.models li:hover {
+    background-color: #000000;
+}
+
+nav.models a {
+    text-decoration: none;
+    color: white;
+}
