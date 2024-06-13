@@ -5,6 +5,7 @@ junit-jupiter-engine = "5.10.0"
 kotlin = "1.9.20"
 exposed-core = "0.45.0"
 ktor-server-core = "2.3.0"
+ktor-server-mustache = "2.3.0"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
@@ -12,6 +13,7 @@ guava = { module = "com.google.guava:guava", version.ref = "guava" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter-engine" }
 exposed-core = {module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed-core"}
 ktor-server-core = {module = "io.ktor:ktor-server-core", version.ref = "ktor-server-core"}
+ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server-mustache" }
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

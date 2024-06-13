@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation((libs.exposed.core))
     implementation(libs.guava)
+    implementation(libs.ktor.server.mustache)
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api(libs.commons.math3)
