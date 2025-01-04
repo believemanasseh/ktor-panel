@@ -4,7 +4,7 @@ plugins {
     `maven-publish`
 }
 
-group = "com.administrativektor"
+group = "xyz.daimones"
 version = "0.0.1"
 
 repositories {
@@ -12,18 +12,18 @@ repositories {
 }
 
 dependencies {
-    // Test dependencies
-    testImplementation(libs.junit.jupiter.engine)
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    // Development dependencies
     implementation(libs.ktor.server.core)
-    implementation((libs.exposed.core))
-    implementation(libs.guava)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
     implementation(libs.ktor.server.mustache)
 
-    // This dependency is exported to consumers, that is to say found on their compile classpath.
+    // Test dependencies
+    testImplementation(libs.junit.jupiter.engine)
+    testImplementation(libs.kotlin.test.junit5)
+    testRuntimeOnly(libs.junit.platform.launcher)
+
+    // This dependency is exported to consumers,
+    // that is to say found on their compile classpath.
     api(libs.commons.math3)
 
 }
@@ -70,4 +70,10 @@ publishing {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+sourceSets {
+    main {
+        kotlin.srcDirs("src/main/kotlin")
+    }
 }

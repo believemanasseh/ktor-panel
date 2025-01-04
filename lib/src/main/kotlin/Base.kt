@@ -1,5 +1,4 @@
-package com.administrativektor
-
+import com.administrativektor.Configuration
 import io.ktor.server.application.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*

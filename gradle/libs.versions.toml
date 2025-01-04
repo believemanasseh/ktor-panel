@@ -1,19 +1,23 @@
 [versions]
-commons-math3 = "3.6.1"
-guava = "32.1.2-jre"
-junit-jupiter-engine = "5.10.0"
-kotlin = "1.9.20"
-exposed-core = "0.45.0"
-ktor-server-core = "2.3.0"
-ktor-server-mustache = "2.3.0"
+commons-math3-version = "3.6.1"
+junit-jupiter-engine-version = "5.10.0"
+kotlin-version = "1.9.20"
+exposed-version = "0.45.0"
+ktor-server-version = "2.3.0"
+ktor-server-mustache-version = "2.3.0"
+junit-platform-launcher-version = "1.11.3"
+kotlin-test-junit5-version = "1.9.0"
 
 [libraries]
-commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter-engine" }
-exposed-core = {module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed-core"}
-ktor-server-core = {module = "io.ktor:ktor-server-core", version.ref = "ktor-server-core"}
-ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server-mustache" }
+commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3-version" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter-engine-version" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin-test-junit5-version" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform-launcher-version" }
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed-version" }
+exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed-version" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor-server-version" }
+ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server-mustache-version" }
+
 
 [plugins]
-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-version" }
