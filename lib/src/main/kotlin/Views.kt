@@ -12,57 +12,57 @@ class BaseView(
     private val application: Application,
     private val configuration: Configuration
 ) {
-    private val indexView = "index.hbs"
-    private val listView = "list.hbs"
-    private val createView = "create.hbs"
-    private val detailsView = "details.hbs"
-    private val updateView = "update.hbs"
+    private val defaultIndexView = "index.hbs"
+    private val defaultListView = "list.hbs"
+    private val defaultCreateView = "create.hbs"
+    private val defaultDetailsView = "details.hbs"
+    private val defaultUpdateView = "update.hbs"
 
-    fun renderIndexView(data: Map<String, Any>) {
+    fun renderIndexView(data: Map<String, Any>, template: String? = null) {
         application.routing {
             route("/") {
                 get {
-                    call.respond(MustacheContent(indexView, data))
+                    call.respond(MustacheContent(template ?: defaultIndexView, data))
                 }
             }
         }
     }
 
-    fun renderListView(data: Map<String, Any>) {
+    fun renderListView(data: Map<String, Any>, template: String? = null) {
         application.routing {
             route("/list") {
                 get {
-                    call.respond(MustacheContent(listView, data))
+                    call.respond(MustacheContent(template ?: defaultListView, data))
                 }
             }
         }
     }
 
-    fun renderCreateView(data: Map<String, Any>) {
+    fun renderCreateView(data: Map<String, Any>, template: String? = null) {
         application.routing {
             route("/new") {
                 post {
-                    call.respond(MustacheContent(createView, data))
+                    call.respond(MustacheContent(template ?: defaultCreateView, data))
                 }
             }
         }
     }
 
-    fun renderDetailsView(data: Map<String, Any>) {
+    fun renderDetailsView(data: Map<String, Any>, template: String? = null) {
         application.routing {
             route("/details") {
                 get {
-                    call.respond(MustacheContent(detailsView, data))
+                    call.respond(MustacheContent(template ?: defaultDetailsView, data))
                 }
             }
         }
     }
 
-    fun renderUpdateView(data: Map<String, Any>) {
+    fun renderUpdateView(data: Map<String, Any>, template: String? = null) {
         application.routing {
             route("/update") {
                 get {
-                    call.respond(MustacheContent(updateView, data))
+                    call.respond(MustacheContent(template ?: defaultUpdateView, data))
                 }
             }
         }
