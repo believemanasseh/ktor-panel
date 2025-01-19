@@ -1,11 +1,21 @@
+import database.retrieveTableNames
 import io.ktor.server.application.*
-import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
 
-
-class Admin(private val application: Application, private val database: Database, val configuration: Configuration) {
+/**
+ * Base admin class for library.
+ *
+ * @property application Ktor application instance.
+ * @property database Application database instance
+ * @property configuration Admin configuration
+ */
+class Admin(
+    private val application: Application,
+    private val database: Database,
+    private val configuration: Configuration
+) {
+    private val tableNames: List<String> = retrieveTableNames(database)
     private val modelViews: MutableList<BaseView> = mutableListOf()
-    private val models: MutableList<IntIdTable> = mutableListOf()
     private val registeredModels: MutableList<BaseView> = mutableListOf()
 
     /**
@@ -15,7 +25,6 @@ class Admin(private val application: Application, private val database: Database
      * @return Nothing
      */
     fun addView(view: BaseView) {
-        this.models.add(view.model)
         this.modelViews.add(view)
         this.registerRoutes()
     }
@@ -39,8 +48,8 @@ class Admin(private val application: Application, private val database: Database
     private fun registerRoutes() {
         for (view in this.modelViews) {
             if (view !in this.registeredModels) {
-                view.renderIndexView(mapOf("models" to this.models, "adminName" to this.configuration.adminName))
-                view.renderListView(mapOf("models" to this.models))
+                view.renderIndexView(mapOf("tables" to this.tableNames, "adminName" to this.configuration.adminName))
+                view.renderListView(mapOf("tables" to this.tableNames))
                 view.renderCreateView(mapOf("model" to view.model))
                 view.renderDetailsView(mapOf("model" to view.model))
                 view.renderUpdateView(mapOf("model" to view.model))
