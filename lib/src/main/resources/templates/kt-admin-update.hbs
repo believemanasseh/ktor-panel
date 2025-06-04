@@ -1,13 +1,16 @@
 <html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <title>Edit</title>
 </head>
 <body>
-<nav class="models">
+<nav class="flex flex-row flex-nowrap text-center bg-blue-700 h-14">
     <ul>
-        <li>{{adminName}}</li>
+        <li class="list-none font-bold text-base text-white p-4 cursor-pointer hover:bg-black active:bg-black">
+            <a class="no-underline text-white" href="#">{{adminName}}</a>
+        </li>
     </ul>
 </nav>
 </body>
 </html>
+
