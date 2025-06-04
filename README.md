@@ -1,7 +1,7 @@
 # Ktor Admin
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.7.0+-blue.svg)](https://kotlinlang.org)
-[![Ktor](https://img.shields.io/badge/Ktor-2.0.0+-blue.svg)](https://ktor.io/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg)](https://kotlinlang.org)
+[![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A lightweight, customisable admin interface library for Ktor applications. Ktor Admin provides a simple way to manage
