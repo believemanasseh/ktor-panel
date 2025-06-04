@@ -26,6 +26,18 @@ class Admin(
     private val modelViews: MutableList<ModelView> = mutableListOf()
 
     /**
+     * Returns the number of model views registered with this admin panel.
+     *
+     * This method provides a way to check how many models are currently being
+     * managed by the admin panel. Useful for diagnostics and testing.
+     *
+     * @return The count of ModelView instances added to this admin panel
+     */
+    fun countModelViews(): Int {
+        return this.modelViews.size
+    }
+
+    /**
      * Adds a single model view to the admin panel.
      *
      * This method registers a model view with the admin panel and immediately renders

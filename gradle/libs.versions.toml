@@ -6,6 +6,8 @@ exposed = "0.61.0"
 ktor-server = "3.0.2"
 junit-platform-launcher = "1.11.3"
 kotlin-test-junit5 = "2.1.0"
+logback-classic = "1.5.15"
+h2 = "2.2.224"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
@@ -14,9 +16,12 @@ kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", versi
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform-launcher" }
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor-server" }
 ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server" }
-
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor-server" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
+h2 = { module = "com.h2database:h2", version.ref = "h2" }
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

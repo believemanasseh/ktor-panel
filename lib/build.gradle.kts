@@ -15,11 +15,15 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.exposed.core)
     implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
     implementation(libs.ktor.server.mustache)
 
     // Test dependencies
     testImplementation(libs.junit.jupiter.engine)
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.logback.classic)
+    testImplementation(libs.h2)
     testRuntimeOnly(libs.junit.platform.launcher)
 
     // This dependency is exported to consumers,
