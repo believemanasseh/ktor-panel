@@ -1,4 +1,5 @@
 plugins {
+    id("jacoco")
     alias(libs.plugins.jvm)
     `java-library`
     `maven-publish`
@@ -80,4 +81,21 @@ sourceSets {
     main {
         kotlin.srcDirs("src/main/kotlin")
     }
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // Ensure jacocoTestReport runs after tests
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // Ensure tests run before generating the report
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco"))
+    }
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
 }

@@ -8,6 +8,7 @@ junit-platform-launcher = "1.11.3"
 kotlin-test-junit5 = "2.1.0"
 logback-classic = "1.5.15"
 h2 = "2.2.224"
+jacoco = "0.8.12"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }

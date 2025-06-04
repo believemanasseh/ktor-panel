@@ -111,6 +111,21 @@ Create your own Mustache templates in your resources directory to override the d
 - `kt-admin-details.hbs` - Detailed view of a record
 - `kt-admin-update.hbs` - Form for updating existing records
 
+## Testing
+
+To run the tests for this project, you can use the following Gradle commands:
+
+### Running All Tests
+
+```bash
+./gradlew test
+```
+
+After running the tests, you can find:
+
+- Test reports in the `lib/build/reports/tests/test/` directory
+- Test coverage reports in the `lib/build/reports/jacoco/test/` directory
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
