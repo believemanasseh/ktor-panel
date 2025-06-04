@@ -113,9 +113,7 @@ Create your own Mustache templates in your resources directory to override the d
 
 ## Testing
 
-To run the tests for this project, you can use the following Gradle commands:
-
-### Running All Tests
+To run the tests for this project, you can use the following Gradle command:
 
 ```bash
 ./gradlew test
