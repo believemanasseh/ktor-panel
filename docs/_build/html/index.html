@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Ktor Admin &#8212; Ktor Admin  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="ktor-admin">
+<h1>Ktor Admin<a class="headerlink" href="#ktor-admin" title="Link to this heading">¶</a></h1>
+<p><a class="reference external" href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg" /></a> <a class="reference external" href="https://ktor.io/"><img alt="Ktor" src="https://img.shields.io/badge/Ktor-3.0.2+-blue.svg" /></a> <a class="reference external" href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg" /></a></p>
+<p>A lightweight, customisable admin interface library for Ktor
+applications. Ktor Admin provides a simple way to manage your database
+models through an intuitive web interface with minimal configuration.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<section id="gradle-kotlin-dsl">
+<h3>Gradle (Kotlin DSL)<a class="headerlink" href="#gradle-kotlin-dsl" title="Link to this heading">¶</a></h3>
+<div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;xyz.daimones:ktor-admin:0.0.1&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="gradle-groovy">
+<h3>Gradle (Groovy)<a class="headerlink" href="#gradle-groovy" title="Link to this heading">¶</a></h3>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;xyz.daimones:ktor-admin:0.0.1&#39;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</section>
+<section id="maven">
+<h3>Maven<a class="headerlink" href="#maven" title="Link to this heading">¶</a></h3>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">    </span><span class="nt">&lt;groupId&gt;</span>xyz.daimones<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>ktor-admin<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;version&gt;</span>0.0.1<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h2>
+<section id="basic-setup">
+<h3>Basic Setup<a class="headerlink" href="#basic-setup" title="Link to this heading">¶</a></h3>
+<div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="c1">// Import necessary components</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.Admin</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.Configuration</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.ModelView</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">org.jetbrains.exposed.sql.Database</span>
+
+<span class="kd">fun</span><span class="w"> </span><span class="n">Application</span><span class="p">.</span><span class="nf">configureAdminPanel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Setup your database connection</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">database</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Database</span><span class="p">.</span><span class="na">connect</span><span class="p">(</span>
+<span class="w">        </span><span class="s">&quot;jdbc:h2:mem:test;DB_CLOSE_DELAY=-1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">driver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;org.h2.Driver&quot;</span>
+<span class="w">    </span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Create admin configuration</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Configuration</span><span class="p">(</span>
+<span class="w">        </span><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;admin&quot;</span><span class="p">,</span><span class="w">           </span><span class="c1">// Access at /admin</span>
+<span class="w">        </span><span class="n">adminName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;My App Admin&quot;</span>
+<span class="w">    </span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Initialize admin panel</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">admin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Admin</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">database</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Add your models to the admin panel</span>
+<span class="w">    </span><span class="n">admin</span><span class="p">.</span><span class="na">addView</span><span class="p">(</span><span class="n">ModelView</span><span class="p">(</span><span class="n">Users</span><span class="p">))</span>
+<span class="w">    </span><span class="n">admin</span><span class="p">.</span><span class="na">addView</span><span class="p">(</span><span class="n">ModelView</span><span class="p">(</span><span class="n">Products</span><span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="add-to-your-ktor-application">
+<h3>Add to your Ktor application<a class="headerlink" href="#add-to-your-ktor-application" title="Link to this heading">¶</a></h3>
+<div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="kd">fun</span><span class="w"> </span><span class="n">Application</span><span class="p">.</span><span class="nf">module</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Configure other Ktor features</span>
+<span class="w">    </span><span class="n">install</span><span class="p">(</span><span class="n">ContentNegotiation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">json</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Install Mustache for templates</span>
+<span class="w">    </span><span class="n">install</span><span class="p">(</span><span class="n">Mustache</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">mustacheFactory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultMustacheFactory</span><span class="p">(</span><span class="s">&quot;templates&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Add admin panel</span>
+<span class="w">    </span><span class="n">configureAdminPanel</span><span class="p">()</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="customisation">
+<h2>Customisation<a class="headerlink" href="#customisation" title="Link to this heading">¶</a></h2>
+<section id="custom-configuration">
+<h3>Custom Configuration<a class="headerlink" href="#custom-configuration" title="Link to this heading">¶</a></h3>
+<div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="kd">val</span><span class="w"> </span><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Configuration</span><span class="p">(</span>
+<span class="w">    </span><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;dashboard&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">// Change URL to /dashboard</span>
+<span class="w">    </span><span class="n">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// Set index endpoint</span>
+<span class="w">    </span><span class="n">setAuthentication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">   </span><span class="c1">// Enable authentication</span>
+<span class="w">    </span><span class="n">adminName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Custom Admin&quot;</span><span class="w">  </span><span class="c1">// Change admin panel name</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="custom-templates">
+<h3>Custom Templates<a class="headerlink" href="#custom-templates" title="Link to this heading">¶</a></h3>
+<p>Create your own Mustache templates in your resources directory to
+override the defaults:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-index.hbs</span></code> - Main dashboard template</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-list.hbs</span></code> - List view for database records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-create.hbs</span></code> - Form for creating new records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-details.hbs</span></code> - Detailed view of a record</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-update.hbs</span></code> - Form for updating existing records</p></li>
+</ul>
+</section>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request.</p>
+<ol class="arabic simple">
+<li><p>Fork the repository</p></li>
+<li><p>Create your feature branch
+(<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">feature/amazing-feature</span></code>)</p></li>
+<li><p>Commit your changes (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-m</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">amazing</span> <span class="pre">feature'</span></code>)</p></li>
+<li><p>Push to the branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">feature/amazing-feature</span></code>)</p></li>
+<li><p>Open a Pull Request</p></li>
+</ol>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h2>
+<p>This project is licensed under the BSD 3-Clause License - see the
+<a class="reference external" href="LICENSE">LICENSE</a> file for details.</p>
+</section>
+<section id="acknowledgments">
+<h2>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://ktor.io/">Ktor</a> - Kotlin async web framework</p></li>
+<li><p><a class="reference external" href="https://github.com/JetBrains/Exposed">Exposed</a> - Kotlin SQL
+library</p></li>
+<li><p><a class="reference external" href="https://github.com/spullara/mustache.java">Mustache</a> - Logic-less
+templates</p></li>
+<li><p><a class="reference external" href="https://github.com/flask-admin/flask-admin">Flask-Admin</a> -
+Inspiration for this project</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Ktor Admin</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Illucid Mind.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
