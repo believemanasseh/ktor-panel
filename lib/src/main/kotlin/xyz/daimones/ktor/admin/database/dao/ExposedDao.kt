@@ -1,23 +1,17 @@
-package database.dao
+package xyz.daimones.ktor.admin.database.dao
 
-import database.DatabaseAccessObjectInterface
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
+import xyz.daimones.ktor.admin.database.DatabaseAccessObjectInterface
 
-class ExposedDao<T> : DatabaseAccessObjectInterface<T> {
-    private lateinit var database: Database
-
-    constructor(database: Database) {
-        this.database = database
-    }
-
+class ExposedDao<T>(private val database: Database) : DatabaseAccessObjectInterface<T> {
     override fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {
         return transaction(this.database) {
-            val resultRow = table.select { table.id eq id }.singleOrNull()
+            val resultRow = table.selectAll().where { table.id eq id }.singleOrNull()
             resultRow?.let { rowMapper(it) }
         }
     }
