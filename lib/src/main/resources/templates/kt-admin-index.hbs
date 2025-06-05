@@ -4,12 +4,14 @@
     <title>Index</title>
 </head>
 <body>
-<nav class="flex flex-row flex-nowrap text-center bg-blue-700 h-14">
-    <ul>
-        <li class="list-none font-bold text-base text-white p-4 cursor-pointer hover:bg-black active:bg-black">
-            <a class="no-underline text-white" href="#">{{adminName}}</a>
-        </li>
-    </ul>
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+    <li class="list-none font-bold text-white p-4 cursor-pointer active:bg-[#000000]"
+        onclick="window.location.href = '/admin/'"
+    >{{adminName}}</li>
+    {{#tables}}
+        <li class="list-none font-bold text-white p-4 cursor-pointer active:bg-[#000000]"
+        ><a href="/admin/{{.}}/list" class="capitalize no-underline text-white text-[15px]">{{.}}</a></li>
+    {{/tables}}
 </nav>
 </body>
 </html>

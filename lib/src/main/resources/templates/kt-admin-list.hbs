@@ -3,14 +3,69 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <title>List</title>
 </head>
-<body>
-<nav class="flex flex-row flex-nowrap text-center bg-blue-700 h-14">
+<body class="bg-gray-50">
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
     <ul>
-        <li class="list-none font-bold text-base text-white p-4 cursor-pointer hover:bg-black active:bg-black">
-            <a class="no-underline text-white" href="#">{{adminName}}</a>
+        <li class="m-auto list-none font-bold text-base text-white p-4 cursor-pointer hover:bg-black active:bg-black"
+            onclick="window.location.href = '/admin/'">
+            {{adminName}}
         </li>
     </ul>
 </nav>
+
+<main class="w-[70vw] m-[20px_auto]">
+    {{#tables}}
+        <header class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">{{tableName}}</h1>
+            <p class="text-sm text-gray-500">Showing all records</p>
+        </header>
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-100">
+                <tr>
+                    {{#tables.headers}}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {{.}}
+                        </th>
+                    {{/tables.headers}}
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                {{#tables.data.values}}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        {{#nums}}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{.}}
+                            </td>
+                        {{/nums}}
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="/admin/{{tableNameLowercased}}/update/{{id}}"
+                               class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
+                            <a href="/admin/{{tableNameLowercased}}/delete/{{id}}"
+                               class="text-red-600 hover:text-red-900">Delete</a>
+                        </td>
+                    </tr>
+                {{/tables.data.values}}
+                </tbody>
+            </table>
+        </div>
+    {{/tables}}
+    {{^tables}}
+        <div class="bg-white shadow rounded-lg p-6 text-center">
+            <p class="text-gray-500">No records found in this table.</p>
+        </div>
+    {{/tables}}
+
+    <div class="mt-4 flex justify-end">
+        <a href="/admin/{{tableNameLowercased}}/new"
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Add New
+        </a>
+    </div>
+</main>
 </body>
 </html>
 

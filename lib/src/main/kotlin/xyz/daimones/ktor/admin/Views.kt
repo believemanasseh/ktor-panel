@@ -6,6 +6,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
+import xyz.daimones.ktor.admin.database.cleanTableNames
 import xyz.daimones.ktor.admin.database.retrieveTableNames
 
 
@@ -74,14 +75,24 @@ open class BaseView(private val model: IntIdTable? = null) {
      */
     fun renderPageViews(application: Application, database: Database, configuration: Configuration) {
         this.configuration = configuration
-        this.tableNames = retrieveTableNames(database)
+        this.tableNames = cleanTableNames(retrieveTableNames(database))
         this.application = application
 
-        exposeIndexView(mapOf("tables" to tableNames, "adminName" to configuration.adminName))
-        exposeListView(mapOf("tables" to this.tableNames))
-        exposeCreateView(mapOf("model" to model?.tableName))
-        exposeDetailsView(mapOf("model" to model?.tableName))
-        exposeUpdateView(mapOf("model" to model?.tableName))
+        exposeIndexView(
+            mapOf(
+                "tables" to this.tableNames.map { it.lowercase() },
+                "adminName" to configuration.adminName
+            )
+        )
+        for (table in this.tableNames) {
+            exposeListView(
+                mutableMapOf("adminName" to configuration.adminName),
+                model = table
+            )
+            exposeCreateView(mapOf("model" to table), model = table.lowercase())
+            exposeDetailsView(mapOf("model" to table), model = table.lowercase())
+            exposeUpdateView(mapOf("model" to table), model = table.lowercase())
+        }
     }
 
     /**
@@ -113,9 +124,20 @@ open class BaseView(private val model: IntIdTable? = null) {
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
      */
-    private fun exposeListView(data: Map<String, Any>, template: String? = null) {
+    private fun exposeListView(data: MutableMap<String, Any>, template: String? = null, model: String) {
         application?.routing {
-            route("/${configuration?.url}/list") {
+            route("/${configuration?.url}/${model.lowercase()}/list") {
+                val tables: Map<String, Any> =
+                    mapOf(
+                        "headers" to listOf("id", "name", "test", "card"),
+                        "data" to mapOf(
+                            "values" to listOf(
+                                mapOf("nums" to listOf(1, "Example Name", "Test Value", "Card Value"), "id" to 1),
+                                mapOf("nums" to listOf(2, "Example Name 2", "Test Value 2", "Card Value 2"), "id" to 2),
+                            ),
+                        ),
+                    )
+                data += mapOf("tableName" to model, "tableNameLowercased" to model.lowercase(), "tables" to tables)
                 get {
                     call.respond(MustacheContent(template ?: defaultListView, data))
                 }
@@ -132,9 +154,9 @@ open class BaseView(private val model: IntIdTable? = null) {
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
      */
-    private fun exposeCreateView(data: Map<String, Any?>, template: String? = null) {
+    private fun exposeCreateView(data: Map<String, Any?>, template: String? = null, model: String) {
         application?.routing {
-            route("/${configuration?.url}/new") {
+            route("/${configuration?.url}/${model}/new") {
                 post {
                     call.respond(MustacheContent(template ?: defaultCreateView, data))
                 }
@@ -151,9 +173,9 @@ open class BaseView(private val model: IntIdTable? = null) {
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
      */
-    private fun exposeDetailsView(data: Map<String, Any?>, template: String? = null) {
+    private fun exposeDetailsView(data: Map<String, Any?>, template: String? = null, model: String, id: Int? = null) {
         application?.routing {
-            route("/${configuration?.url}/details") {
+            route("/${configuration?.url}/${model}/details/${id}") {
                 get {
                     call.respond(MustacheContent(template ?: defaultDetailsView, data))
                 }
@@ -170,9 +192,9 @@ open class BaseView(private val model: IntIdTable? = null) {
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
      */
-    private fun exposeUpdateView(data: Map<String, Any?>, template: String? = null) {
+    private fun exposeUpdateView(data: Map<String, Any?>, template: String? = null, model: String) {
         application?.routing {
-            route("/${configuration?.url}/update") {
+            route("/${configuration?.url}/${model}/update") {
                 get {
                     call.respond(MustacheContent(template ?: defaultUpdateView, data))
                 }
@@ -193,5 +215,5 @@ open class BaseView(private val model: IntIdTable? = null) {
  * This class can be extended to customise admin behavior for specific models,
  * or used directly for standard database administration needs.
  */
-class ModelView : BaseView()
+class ModelView(model: IntIdTable?) : BaseView(model)
 
