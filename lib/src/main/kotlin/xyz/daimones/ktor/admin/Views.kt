@@ -6,7 +6,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
-import xyz.daimones.ktor.admin.database.cleanTableNames
 import xyz.daimones.ktor.admin.database.retrieveTableNames
 
 
@@ -75,7 +74,7 @@ open class BaseView(private val model: IntIdTable? = null) {
      */
     fun renderPageViews(application: Application, database: Database, configuration: Configuration) {
         this.configuration = configuration
-        this.tableNames = cleanTableNames(retrieveTableNames(database))
+        this.tableNames = retrieveTableNames(database)
         this.application = application
 
         exposeIndexView(
