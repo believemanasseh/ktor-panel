@@ -26,6 +26,12 @@ class Admin(
     private val modelViews: MutableList<ModelView> = mutableListOf()
 
     /**
+     * List of table names retrieved from the database.
+     * Used for generating navigation and displaying available tables in the admin interface.
+     */
+    private val tableNames: MutableList<String> = mutableListOf()
+
+    /**
      * Returns the number of model views registered with this admin panel.
      *
      * This method provides a way to check how many models are currently being
@@ -46,8 +52,9 @@ class Admin(
      * @param view ModelView instance to be added to the admin panel
      */
     fun addView(view: ModelView) {
+        this.tableNames.add(view.model.tableName)
         this.modelViews.add(view)
-        view.renderPageViews(this.application, this.database, this.configuration)
+        view.renderPageViews(this.database, this.application, this.configuration, this.tableNames)
     }
 
     /**

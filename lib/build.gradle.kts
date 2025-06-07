@@ -17,6 +17,8 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.json)
+    implementation(libs.exposed.java.time)
     implementation(libs.ktor.server.mustache)
 
     // Test dependencies

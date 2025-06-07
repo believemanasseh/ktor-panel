@@ -5,12 +5,14 @@
 </head>
 <body>
 <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
-    <li class="list-none font-bold text-white p-4 cursor-pointer active:bg-[#000000]"
-        onclick="window.location.href = '/admin/'"
-    >{{adminName}}</li>
+    <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
+       href="/{{configuration.url}}"
+    >{{configuration.adminName}}</a>
     {{#tables}}
-        <li class="list-none font-bold text-white p-4 cursor-pointer active:bg-[#000000]"
-        ><a href="/admin/{{.}}/list" class="capitalize no-underline text-white text-[15px]">{{.}}</a></li>
+        <a class="capitalize no-underline text-[15px] font-bold text-white p-4 cursor-pointer hover:bg-black active:bg-black"
+           href="/{{configuration.url}}/{{.}}/list"
+        >{{.}}
+        </a>
     {{/tables}}
 </nav>
 </body>

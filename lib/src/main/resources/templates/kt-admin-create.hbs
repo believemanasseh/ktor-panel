@@ -1,16 +1,74 @@
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <title>Create</title>
+    <title>Edit {{model}} - {{idValue}}</title>
 </head>
-<body>
-<nav class="flex flex-row flex-nowrap text-center bg-blue-700 h-14">
-    <ul>
-        <li class="list-none font-bold text-base text-white p-4 cursor-pointer hover:bg-black active:bg-black">
-            <a class="no-underline text-white" href="#">{{adminName}}</a>
-        </li>
-    </ul>
+<body class="bg-gray-100">
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+    <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
+       href="/{{configuration.url}}/{{modelPath}}/list">
+        Back to {{model}} List
+    </a>
 </nav>
+
+<div class="container mx-auto p-4 w-[70vw]">
+    <h1 class="text-2xl font-bold my-4">New instance</h1>
+
+    {{#fields}}
+    <form method="POST" action="/{{configuration.url}}/{{modelPath}}/new"
+          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <div class="mb-6">
+            {{^is_hidden}}
+                <label for="{{name}}" class="block text-gray-700 text-sm font-bold mb-2 capitalize">
+                    {{name}}:
+                </label>
+
+                {{#is_checkbox}}
+                    <div class="mt-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="{{name}}" id="{{name}}"
+                                   {{#value}}checked{{/value}} class="form-checkbox h-5 w-5 text-blue-600">
+                        </label>
+                    </div>
+                {{/is_checkbox}}
+
+                {{#is_select}}
+                    <select name="{{name}}" id="{{name}}"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        {{#options}}
+                            <option {{#selected}}selected{{/selected}}>{{text}}</option>
+                        {{/options}}
+                        {{^options}}
+                            {{#value}}
+                                <option selected>{{value}} (Current)</option>
+                            {{/value}}
+                            <option value="">-- Please select --</option>
+                        {{/options}}
+                    </select>
+                {{/is_select}}
+
+                {{#is_textarea}}
+                    <textarea name="{{name}}" id="{{name}}" rows="4"
+                              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                {{/is_textarea}}
+
+                {{#is_general_input}}
+                    <input type="{{html_input_type}}" name="{{name}}" id="{{name}}"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           {{#is_readonly}}readonly{{/is_readonly}}> {{! Make non-hidden ID fields readonly }}
+                {{/is_general_input}}
+            {{/is_hidden}}
+        </div>
+    {{/fields}}
+    <div class="flex items-center justify-end mt-8">
+        <button type="submit"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Save Changes
+        </button>
+    </div>
+</form>
+</div>
 </body>
 </html>
-

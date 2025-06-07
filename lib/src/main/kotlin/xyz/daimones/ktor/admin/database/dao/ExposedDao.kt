@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.admin.database.DatabaseAccessObjectInterface
 
-class ExposedDao<T>(private val database: Database) : DatabaseAccessObjectInterface<T> {
+class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface {
     override fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {
         return transaction(this.database) {
             val resultRow = table.selectAll().where { table.id eq id }.singleOrNull()

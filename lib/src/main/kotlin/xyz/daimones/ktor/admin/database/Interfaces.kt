@@ -5,7 +5,7 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 
-interface DatabaseAccessObjectInterface<T> {
+interface DatabaseAccessObjectInterface {
     fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T?
     fun <T> findAll(table: IntIdTable, rowMapper: (ResultRow) -> T): List<T?>
     fun save(table: IntIdTable, saveData: (UpdateBuilder<*>) -> Unit): EntityID<Int>
