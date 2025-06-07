@@ -4,9 +4,9 @@
 
 import io.ktor.server.testing.*
 import org.jetbrains.exposed.sql.Database
-import xyz.daimones.ktor.admin.Admin
-import xyz.daimones.ktor.admin.Configuration
-import xyz.daimones.ktor.admin.ModelView
+import xyz.daimones.ktor.panel.Admin
+import xyz.daimones.ktor.panel.Configuration
+import xyz.daimones.ktor.panel.ModelView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

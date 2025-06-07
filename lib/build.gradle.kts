@@ -45,13 +45,13 @@ java {
 
 publishing {
     publications {
-        create<MavenPublication>("ktor-admin") {
-            artifactId = "ktor-admin"
+        create<MavenPublication>("ktor-panel") {
+            artifactId = "ktor-panel"
             from(components["java"])
             pom {
-                name = "Ktor Admin"
+                name = "Ktor Panel"
                 description = "An admin interface library for ktor applications."
-                url = "https://github.com/believemanasseh/ktor-admin"
+                url = "https://github.com/believemanasseh/ktor-panel"
                 licenses {
                     license {
                         name = "The 3-Clause BSD License"
@@ -66,9 +66,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection = "scm:git:git://github.com/believemanasseh/ktor-admin.git"
-                    developerConnection = "scm:git:ssh://github.com/believemanasseh/ktor-admin.git"
-                    url = "https://github.com/believemanasseh/ktor-admin"
+                    connection = "scm:git:git://github.com/believemanasseh/ktor-panel.git"
+                    developerConnection = "scm:git:ssh://github.com/believemanasseh/ktor-panel.git"
+                    url = "https://github.com/believemanasseh/ktor-panel"
                 }
             }
         }

@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin
+package xyz.daimones.ktor.panel
 
 import io.ktor.server.application.*
 import org.jetbrains.exposed.sql.Database

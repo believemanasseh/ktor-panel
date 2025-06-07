@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin.database
+package xyz.daimones.ktor.panel.database
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction

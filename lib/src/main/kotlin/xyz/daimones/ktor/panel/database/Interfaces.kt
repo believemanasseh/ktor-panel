@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin.database
+package xyz.daimones.ktor.panel.database
 
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable

@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin
+package xyz.daimones.ktor.panel
 
 import io.ktor.server.application.*
 import io.ktor.server.mustache.*
@@ -13,8 +13,8 @@ import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.json.JsonBColumnType
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
-import xyz.daimones.ktor.admin.database.DatabaseAccessObjectInterface
-import xyz.daimones.ktor.admin.database.dao.ExposedDao
+import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import java.time.LocalDateTime
 
 
@@ -54,22 +54,22 @@ open class BaseView(private val model: IntIdTable) {
     /**
      * Default Mustache template for the index page.
      */
-    private val defaultIndexView = "kt-admin-index.hbs"
+    private val defaultIndexView = "kt-panel-index.hbs"
 
     /**
      * Default Mustache template for the list page.
      */
-    private val defaultListView = "kt-admin-list.hbs"
+    private val defaultListView = "kt-panel-list.hbs"
 
     /**
      * Default Mustache template for the create page.
      */
-    private val defaultCreateView = "kt-admin-create.hbs"
+    private val defaultCreateView = "kt-panel-create.hbs"
 
     /**
      * Default Mustache template for the details page.
      */
-    private val defaultDetailsView = "kt-admin-details.hbs"
+    private val defaultDetailsView = "kt-panel-details.hbs"
 
     /**
      * List of headers for the model's columns.

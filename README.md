@@ -1,10 +1,11 @@
-# Ktor Admin
+# Ktor Panel
 
+`
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg)](https://kotlinlang.org)
 [![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A lightweight, customisable admin interface library for Ktor applications. Ktor Admin provides a simple way to manage
+A lightweight, customisable admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
 your database models through an intuitive web interface with minimal configuration.
 
 ## Installation
@@ -13,7 +14,7 @@ your database models through an intuitive web interface with minimal configurati
 
 ```kotlin
 dependencies {
-    implementation("xyz.daimones:ktor-admin:0.0.1")
+    implementation("xyz.daimones:ktor-panel:0.0.1")
 }
 ```
 
@@ -21,7 +22,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'xyz.daimones:ktor-admin:0.0.1'
+    implementation 'xyz.daimones:ktor-panel:0.0.1'
 }
 ```
 
@@ -31,7 +32,7 @@ dependencies {
 
 <dependency>
     <groupId>xyz.daimones</groupId>
-    <artifactId>ktor-admin</artifactId>
+    <artifactId>ktor-panel</artifactId>
     <version>0.0.1</version>
 </dependency>
 ```
@@ -42,9 +43,9 @@ dependencies {
 
 ```kotlin
 // Import necessary components
-import xyz.daimones.ktor.admin.Admin
-import xyz.daimones.ktor.admin.Configuration
-import xyz.daimones.ktor.admin.ModelView
+import xyz.daimones.ktor.panel.Admin
+import xyz.daimones.ktor.panel.Configuration
+import xyz.daimones.ktor.panel.ModelView
 import org.jetbrains.exposed.sql.Database
 
 fun Application.configureAdminPanel() {
@@ -105,11 +106,11 @@ val config = Configuration(
 
 Create your own Mustache templates in your resources directory to override the defaults:
 
-- `kt-admin-index.hbs` - Main dashboard template
-- `kt-admin-list.hbs` - List view for database records
-- `kt-admin-create.hbs` - Form for creating new records
-- `kt-admin-details.hbs` - Detailed view of a record
-- `kt-admin-update.hbs` - Form for updating existing records
+- `kt-panel-index.hbs` - Main dashboard template
+- `kt-panel-list.hbs` - List view for database records
+- `kt-panel-create.hbs` - Form for creating new records
+- `kt-panel-details.hbs` - Detailed view of a record
+- `kt-panel-update.hbs` - Form for updating existing records
 
 ## Testing
 

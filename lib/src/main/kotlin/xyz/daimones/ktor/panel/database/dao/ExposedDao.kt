@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin.database.dao
+package xyz.daimones.ktor.panel.database.dao
 
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
-import xyz.daimones.ktor.admin.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 
 class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface {
     override fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {

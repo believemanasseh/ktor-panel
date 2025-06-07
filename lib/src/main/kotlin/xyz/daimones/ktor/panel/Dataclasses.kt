@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.admin
+package xyz.daimones.ktor.panel
 
 /**
  * Data classes for the Ktor Admin panel configuration and settings.
