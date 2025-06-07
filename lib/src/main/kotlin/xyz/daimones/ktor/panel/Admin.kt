@@ -4,7 +4,7 @@ import io.ktor.server.application.*
 import org.jetbrains.exposed.sql.Database
 
 /**
- * Base admin class for the Ktor admin panel library.
+ * Base admin class for the Ktor Panel library.
  *
  * This class serves as the main entry point for the admin panel functionality.
  * It manages the registration and rendering of model views and handles the overall

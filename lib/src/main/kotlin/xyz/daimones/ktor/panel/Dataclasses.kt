@@ -1,14 +1,14 @@
 package xyz.daimones.ktor.panel
 
 /**
- * Data classes for the Ktor Admin panel configuration and settings.
+ * Data classes for the Ktor Panel configuration and settings.
  *
  * This file contains data classes that define the structure and default values
  * for various configuration settings used throughout the admin panel.
  */
 
 /**
- * Configuration settings for the Ktor Admin panel.
+ * Configuration settings for the Ktor Panel library.
  *
  * This data class encapsulates all configuration options for customising the admin panel's
  * behavior, appearance, and security settings. It provides sensible defaults for all properties
