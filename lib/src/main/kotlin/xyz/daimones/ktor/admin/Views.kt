@@ -379,18 +379,12 @@ open class BaseView(private val model: IntIdTable) {
  */
 class ModelView(val model: IntIdTable) : BaseView(model) {
     /**
-     * Data structure containing table headers and data.
-     * This is used to render the list view and other related pages.
-     */
-    private var tablesData: Map<String, Any> = emptyMap()
-
-
-    /**
      * Sets up all the admin panel views and routes.
      *
      * This method initialises the necessary properties and calls the individual
      * expose methods to set up routes for different admin panel views.
      *
+     * @param database The database connection to be used for data access
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
