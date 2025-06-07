@@ -114,7 +114,7 @@ open class BaseView(private val model: IntIdTable) {
      */
     private fun getHtmlInputType(column: Column<*>): String {
         return when (column.columnType) {
-            is EntityIDColumnType<*> -> "number" //
+            is EntityIDColumnType<*> -> "number"
             is VarCharColumnType, is TextColumnType, is CharacterColumnType -> {
                 if (column.name.contains("password", ignoreCase = true)) "password"
                 else "text"
@@ -209,6 +209,7 @@ open class BaseView(private val model: IntIdTable) {
                     } else {
                         data.remove("successMessage")
                     }
+
                     call.respond(MustacheContent(template ?: defaultListView, data))
                 }
             }
@@ -258,7 +259,7 @@ open class BaseView(private val model: IntIdTable) {
                                 "textarea",
                                 "hidden"
                             ).contains(inputType)
-                            // TODO: For "is_select", need to add an "options" list to this map
+                            // TODO: For "is_select", we need to add an "options" list to this map
                             // e.g., "options" to listOf(mapOf("value" to "opt1", "text" to "Option 1", "selected" to true/false))
                         )
                     }
@@ -314,7 +315,7 @@ open class BaseView(private val model: IntIdTable) {
                     val obj = dao!!.findById(idValue?.toInt() ?: 0, model) { resultRow ->
                         model.columns.associate { column ->
                             val actualValue = resultRow[column].let { value ->
-                                // Exposed stores IDs as EntityID, so extract the actual value.
+                                // Exposed stores IDs as EntityID, so we extract the actual value.
                                 if (value is EntityID<*>) value.value else value
                             }
 
@@ -350,7 +351,7 @@ open class BaseView(private val model: IntIdTable) {
                                 "textarea",
                                 "hidden"
                             ).contains(inputType)
-                            // TODO: For "is_select", need to add an "options" list to this map
+                            // TODO: For "is_select", we need to add an "options" list to this map
                             // e.g., "options" to listOf(mapOf("value" to "opt1", "text" to "Option 1", "selected" to true/false))
                         )
                     } ?: emptyList()
