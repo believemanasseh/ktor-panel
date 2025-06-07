@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Ktor Admin &#8212; Ktor Admin  documentation</title>
+    <title>Ktor Panel &#8212; Ktor Admin  documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
@@ -31,18 +31,18 @@
 
           <div class="body" role="main">
             
-  <section id="ktor-admin">
-<h1>Ktor Admin<a class="headerlink" href="#ktor-admin" title="Link to this heading">¶</a></h1>
-<p><a class="reference external" href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg" /></a> <a class="reference external" href="https://ktor.io/"><img alt="Ktor" src="https://img.shields.io/badge/Ktor-3.0.2+-blue.svg" /></a> <a class="reference external" href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg" /></a></p>
+  <section id="ktor-panel">
+<h1>Ktor Panel<a class="headerlink" href="#ktor-panel" title="Link to this heading">¶</a></h1>
+<p>` <a class="reference external" href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg" /></a> <a class="reference external" href="https://ktor.io/"><img alt="Ktor" src="https://img.shields.io/badge/Ktor-3.0.2+-blue.svg" /></a> <a class="reference external" href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg" /></a></p>
 <p>A lightweight, customisable admin interface library for Ktor
-applications. Ktor Admin provides a simple way to manage your database
+applications. Ktor Panel provides a simple way to manage your database
 models through an intuitive web interface with minimal configuration.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <section id="gradle-kotlin-dsl">
 <h3>Gradle (Kotlin DSL)<a class="headerlink" href="#gradle-kotlin-dsl" title="Link to this heading">¶</a></h3>
 <div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;xyz.daimones:ktor-admin:0.0.1&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;xyz.daimones:ktor-panel:0.0.1&quot;</span><span class="p">)</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -50,7 +50,7 @@ models through an intuitive web interface with minimal configuration.</p>
 <section id="gradle-groovy">
 <h3>Gradle (Groovy)<a class="headerlink" href="#gradle-groovy" title="Link to this heading">¶</a></h3>
 <div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
-<span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;xyz.daimones:ktor-admin:0.0.1&#39;</span>
+<span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;xyz.daimones:ktor-panel:0.0.1&#39;</span>
 <span class="o">}</span>
 </pre></div>
 </div>
@@ -59,7 +59,7 @@ models through an intuitive web interface with minimal configuration.</p>
 <h3>Maven<a class="headerlink" href="#maven" title="Link to this heading">¶</a></h3>
 <div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;dependency&gt;</span>
 <span class="w">    </span><span class="nt">&lt;groupId&gt;</span>xyz.daimones<span class="nt">&lt;/groupId&gt;</span>
-<span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>ktor-admin<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>ktor-panel<span class="nt">&lt;/artifactId&gt;</span>
 <span class="w">    </span><span class="nt">&lt;version&gt;</span>0.0.1<span class="nt">&lt;/version&gt;</span>
 <span class="nt">&lt;/dependency&gt;</span>
 </pre></div>
@@ -71,9 +71,9 @@ models through an intuitive web interface with minimal configuration.</p>
 <section id="basic-setup">
 <h3>Basic Setup<a class="headerlink" href="#basic-setup" title="Link to this heading">¶</a></h3>
 <div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="c1">// Import necessary components</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.Admin</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.Configuration</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.admin.ModelView</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.panel.Admin</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.panel.Configuration</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">xyz.daimones.ktor.panel.ModelView</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">org.jetbrains.exposed.sql.Database</span>
 
 <span class="kd">fun</span><span class="w"> </span><span class="n">Application</span><span class="p">.</span><span class="nf">configureAdminPanel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -137,13 +137,27 @@ models through an intuitive web interface with minimal configuration.</p>
 <p>Create your own Mustache templates in your resources directory to
 override the defaults:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-index.hbs</span></code> - Main dashboard template</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-list.hbs</span></code> - List view for database records</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-create.hbs</span></code> - Form for creating new records</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-details.hbs</span></code> - Detailed view of a record</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">kt-admin-update.hbs</span></code> - Form for updating existing records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-index.hbs</span></code> - Main dashboard template</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-list.hbs</span></code> - List view for database records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-create.hbs</span></code> - Form for creating new records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-details.hbs</span></code> - Detailed view of a record</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-update.hbs</span></code> - Form for updating existing records</p></li>
 </ul>
 </section>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading">¶</a></h2>
+<p>To run the tests for this project, you can use the following Gradle
+command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew<span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+<p>After running the tests, you can find:</p>
+<ul class="simple">
+<li><p>Test reports in the <code class="docutils literal notranslate"><span class="pre">lib/build/reports/tests/test/</span></code> directory</p></li>
+<li><p>Test coverage reports in the <code class="docutils literal notranslate"><span class="pre">lib/build/reports/jacoco/test/</span></code>
+directory</p></li>
+</ul>
 </section>
 <section id="contributing">
 <h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h2>

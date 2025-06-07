@@ -1,10 +1,10 @@
-Ktor Admin
+Ktor Panel
 ==========
 
-|Kotlin| |Ktor| |License|
+\` |Kotlin| |Ktor| |License|
 
 A lightweight, customisable admin interface library for Ktor
-applications. Ktor Admin provides a simple way to manage your database
+applications. Ktor Panel provides a simple way to manage your database
 models through an intuitive web interface with minimal configuration.
 
 Installation
@@ -16,7 +16,7 @@ Gradle (Kotlin DSL)
 .. code:: kotlin
 
    dependencies {
-       implementation("xyz.daimones:ktor-admin:0.0.1")
+       implementation("xyz.daimones:ktor-panel:0.0.1")
    }
 
 Gradle (Groovy)
@@ -25,7 +25,7 @@ Gradle (Groovy)
 .. code:: groovy
 
    dependencies {
-       implementation 'xyz.daimones:ktor-admin:0.0.1'
+       implementation 'xyz.daimones:ktor-panel:0.0.1'
    }
 
 Maven
@@ -36,7 +36,7 @@ Maven
 
    <dependency>
        <groupId>xyz.daimones</groupId>
-       <artifactId>ktor-admin</artifactId>
+       <artifactId>ktor-panel</artifactId>
        <version>0.0.1</version>
    </dependency>
 
@@ -49,9 +49,9 @@ Basic Setup
 .. code:: kotlin
 
    // Import necessary components
-   import xyz.daimones.ktor.admin.Admin
-   import xyz.daimones.ktor.admin.Configuration
-   import xyz.daimones.ktor.admin.ModelView
+   import xyz.daimones.ktor.panel.Admin
+   import xyz.daimones.ktor.panel.Configuration
+   import xyz.daimones.ktor.panel.ModelView
    import org.jetbrains.exposed.sql.Database
 
    fun Application.configureAdminPanel() {
@@ -116,11 +116,27 @@ Custom Templates
 Create your own Mustache templates in your resources directory to
 override the defaults:
 
--  ``kt-admin-index.hbs`` - Main dashboard template
--  ``kt-admin-list.hbs`` - List view for database records
--  ``kt-admin-create.hbs`` - Form for creating new records
--  ``kt-admin-details.hbs`` - Detailed view of a record
--  ``kt-admin-update.hbs`` - Form for updating existing records
+-  ``kt-panel-index.hbs`` - Main dashboard template
+-  ``kt-panel-list.hbs`` - List view for database records
+-  ``kt-panel-create.hbs`` - Form for creating new records
+-  ``kt-panel-details.hbs`` - Detailed view of a record
+-  ``kt-panel-update.hbs`` - Form for updating existing records
+
+Testing
+-------
+
+To run the tests for this project, you can use the following Gradle
+command:
+
+.. code:: bash
+
+   ./gradlew test
+
+After running the tests, you can find:
+
+-  Test reports in the ``lib/build/reports/tests/test/`` directory
+-  Test coverage reports in the ``lib/build/reports/jacoco/test/``
+   directory
 
 Contributing
 ------------
