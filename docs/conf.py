@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Ktor Admin'
+project = 'Ktor Panel'
 copyright = '2025, Illucid Mind'
 author = 'Illucid Mind'
 

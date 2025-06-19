@@ -125,6 +125,14 @@ After running the tests, you can find:
 - Test reports in the `lib/build/reports/tests/test/` directory
 - Test coverage reports in the `lib/build/reports/jacoco/test/` directory
 
+## Documentation
+
+To build the Sphinx documentation, use the following command:
+
+```bash
+sphinx-build -b html docs/ build/
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
