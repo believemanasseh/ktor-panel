@@ -364,6 +364,30 @@ open class BaseView(private val model: IntIdTable) {
             }
         }
     }
+
+    /**
+     * Sets up the route for the delete view that allows deleting records.
+     *
+     * This method creates a GET route for confirming deletion of a record in a table,
+     * using the specified template (or default template if none provided).
+     *
+     * @param data Map of data to be passed to the template
+     * @param template Optional custom template name, if null the default template is used
+     * @param modelPath The path to the model being deleted, used in the URL
+     */
+    fun exposeDeleteView(data: MutableMap<String, Any?>, template: String? = null, modelPath: String) {
+        application?.routing {
+            route("/${configuration?.url}/${modelPath}/delete/{id}") {
+                get {
+                    val idValue = call.parameters["id"]
+                    val instanceId = dao!!.delete(idValue?.toInt() ?: 0, model)
+
+                    data["instanceId"] = instanceId
+                    call.respond(MustacheContent(template ?: "kt-panel-delete.hbs", data))
+                }
+            }
+        }
+    }
 }
 
 
@@ -401,11 +425,21 @@ class ModelView(val model: IntIdTable) : BaseView(model) {
         super.database = database
         super.dao = ExposedDao(database)
 
-        exposeIndexView(
+        this.exposeIndexView(
             mapOf(
                 "tables" to tableNames.map { it.lowercase() },
                 "configuration" to configuration
             )
+        )
+
+        this.exposeDeleteView(
+            mutableMapOf(
+                "tables" to tableNames.map { it.lowercase() },
+                "configuration" to configuration,
+                "model" to model.tableName,
+                "modelPath" to model.tableName.lowercase()
+            ),
+            modelPath = model.tableName.lowercase()
         )
 
         for (table in tableNames) {

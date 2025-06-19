@@ -1,0 +1,19 @@
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Index</title>
+</head>
+<body>
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+    <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
+       href="/{{configuration.url}}"
+    >{{configuration.adminName}}</a>
+    <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
+       href="/{{configuration.url}}/{{modelPath}}/list">
+        Back to {{model}} List
+    </a>
+</nav>
+<p class="text-center mt-5">Model instance (id: {{instanceId}}) deleted successfully!</p>
+</body>
+</html>
+
