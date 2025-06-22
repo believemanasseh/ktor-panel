@@ -1,0 +1,43 @@
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Login</title>
+</head>
+<body>
+<div>
+    <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+        <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
+           href="/{{configuration.url}}">
+            {{configuration.adminName}}
+        </a>
+    </nav>
+    <div class="container mx-auto p-4 w-[70vw]">
+        <form method="POST" action="/{{configuration.url}}/login"
+              class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-6">
+                <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username:</label>
+                <input type="text" name="username" id="username"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                <input type="password" name="password" id="password"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Login
+                </button>
+            </div>
+            <div class="mt-4 text-center">
+                <a href="/{{configuration.url}}/register"
+                   class="text-blue-500 hover:underline">
+                    Don't have an account? Register here
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
