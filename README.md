@@ -106,6 +106,8 @@ val config = Configuration(
 
 Create your own Mustache templates in your resources directory to override the defaults:
 
+- `kt-panel-register.hbs` - Registration form template
+- `kt-panel-login.hbs` - Login form template
 - `kt-panel-index.hbs` - Main dashboard template
 - `kt-panel-list.hbs` - List view for database records
 - `kt-panel-create.hbs` - Form for creating new records
