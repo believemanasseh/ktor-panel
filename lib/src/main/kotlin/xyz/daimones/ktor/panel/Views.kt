@@ -13,6 +13,8 @@ import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.json.JsonBColumnType
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import org.mindrot.jbcrypt.BCrypt
+import xyz.daimones.ktor.panel.database.AdminUsers
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import java.time.LocalDateTime
@@ -158,6 +160,88 @@ open class BaseView(private val model: IntIdTable) {
                 }
             }
             mapOf("id" to idValue, "nums" to columnValues)
+        }
+    }
+
+    /**
+     * Sets up the route for the register view.
+     *
+     * This method creates a GET and POST route for the admin panel's register page,
+     * rendering the specified template (or default template if none provided).
+     *
+     * @param data Map of data to be passed to the template
+     * @param template Optional custom template name, if null the default template is used
+     */
+    protected fun exposeRegisterView(data: Map<String, Any>, template: String? = null) {
+        application?.routing {
+            route("/${configuration?.url}/register") {
+                get {
+                    call.respond(MustacheContent(template ?: "kt-panel-register.hbs", data))
+                }
+
+                post {
+                    val params = call.receiveParameters()
+                    val username = params["username"]
+                    val password = params["password"]
+
+                    val hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt())
+                    dao!!.save(AdminUsers) {
+                        it[AdminUsers.username] = username.toString()
+                        it[AdminUsers.password] = hashedPassword
+                    }
+
+                    call.respondRedirect("/${configuration?.url}/login")
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets up the route for the login view.
+     *
+     * This method creates a GET and POST route for the admin panel's login page,
+     * rendering the specified template (or default template if none provided).
+     *
+     * @param data Map of data to be passed to the template
+     * @param template Optional custom template name, if null the default template is used
+     */
+    protected fun exposeLoginView(data: MutableMap<String, Any>, template: String? = null) {
+        application?.routing {
+            route("/${configuration?.url}/login") {
+                get {
+                    call.respond(MustacheContent(template ?: "kt-panel-login.hbs", data))
+                }
+
+                post {
+                    val params = call.receiveParameters()
+                    val username = params["username"]
+                    val password = params["password"]
+
+                    val user = dao!!.findByUsername(username.toString(), AdminUsers) { resultRow ->
+                        val storedPassword = resultRow[AdminUsers.password]
+                        if (BCrypt.checkpw(password.toString(), storedPassword)) {
+                            mapOf(
+                                "id" to resultRow[AdminUsers.id].value,
+                                "username" to resultRow[AdminUsers.username],
+                                "password" to resultRow[AdminUsers.password],
+                                "role" to resultRow[AdminUsers.role],
+                                "created" to resultRow[AdminUsers.created].toString(),
+                                "modified" to resultRow[AdminUsers.modified].toString()
+                            )
+                        } else {
+                            null
+                        }
+                    }
+
+                    if (user != null) {
+                        val endpoint = if (configuration?.endpoint === "/") "" else "/${configuration?.endpoint}"
+                        call.respondRedirect("/${configuration?.url}${endpoint}")
+                    } else {
+                        data["errorMessage"] = "Invalid username or password"
+                        call.respond(MustacheContent(template ?: "kt-panel-login.hbs", data))
+                    }
+                }
+            }
         }
     }
 
@@ -424,6 +508,20 @@ class ModelView(val model: IntIdTable) : BaseView(model) {
         super.application = application
         super.database = database
         super.dao = ExposedDao(database)
+
+        if (configuration.setAuthentication) {
+            // Create the AdminUsers table if it doesn't exist
+            this.dao!!.createTable(AdminUsers)
+
+            // Expose the authentication views
+            this.exposeRegisterView(
+                mapOf("configuration" to configuration)
+            )
+
+            this.exposeLoginView(
+                mutableMapOf("configuration" to configuration)
+            )
+        }
 
         this.exposeIndexView(
             mapOf(

@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
+import xyz.daimones.ktor.panel.database.AdminUsers
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 
 class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface {
@@ -20,6 +21,14 @@ class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface
         return transaction(this.database) {
             val resultRow = table.selectAll()
             resultRow.map { rowMapper(it) }
+        }
+    }
+
+    override fun <T> findByUsername(username: String, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {
+        return transaction(this.database) {
+            val resultRow = table.selectAll().where { AdminUsers.username eq username }.withDistinct()
+                .firstOrNull()
+            resultRow?.let { rowMapper(it) }
         }
     }
 
@@ -40,6 +49,12 @@ class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface
     override fun delete(id: Int, table: IntIdTable): Int {
         return transaction(this.database) {
             table.deleteWhere { table.id eq id }
+        }
+    }
+
+    override fun createTable(table: IntIdTable) {
+        transaction(this.database) {
+            SchemaUtils.create(table)
         }
     }
 }

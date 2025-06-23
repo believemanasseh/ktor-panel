@@ -9,6 +9,7 @@ kotlin-test-junit5 = "2.1.0"
 logback-classic = "1.5.15"
 h2 = "2.2.224"
 jacoco = "0.8.12"
+jbcrypt = "0.4"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
@@ -24,6 +25,7 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor-se
 ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor-server" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
+jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
 
 [plugins]

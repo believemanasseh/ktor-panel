@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.exposed.json)
     implementation(libs.exposed.java.time)
     implementation(libs.ktor.server.mustache)
+    implementation(libs.jbcrypt)
 
     // Test dependencies
     testImplementation(libs.junit.jupiter.engine)
