@@ -27,6 +27,12 @@ package xyz.daimones.ktor.panel
  * @property adminName The display name shown in the admin panel's UI elements, such as the header or title.
  *             This helps identify the admin panel when multiple instances exist or for branding purposes.
  *
+ * @property adminUsername The default username for the admin user. This is used for authentication purposes.
+ *             Default is "admin". This can be overridden in the admin user management interface.
+ * 
+ * @property adminPassword The default password for the admin user. This is used for authentication purposes.
+ *             Default is "admin". This can be overridden in the admin user management interface.
+ * 
  * @see Admin
  * @see BaseView
  */
@@ -34,6 +40,8 @@ data class Configuration(
     val url: String = "admin",
     val endpoint: String = "/",
     val setAuthentication: Boolean = true,
-    val adminName: String = "Admin"
+    val adminName: String = "Admin",
+    val adminUsername: String = "admin",
+    val adminPassword: String = "admin"
 )
 
