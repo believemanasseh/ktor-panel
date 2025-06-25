@@ -110,10 +110,12 @@ Custom Configuration
 .. code:: kotlin
 
    val config = Configuration(
-       url = "dashboard",          // Change URL to /dashboard
-       endpoint = "/",             // Set index endpoint
-       setAuthentication = true,   // Enable authentication
-       adminName = "Custom Admin"  // Change admin panel name
+      url = "dashboard",          // Change URL to /dashboard
+      endpoint = "/",             // Set index endpoint
+      setAuthentication = true,   // Enable authentication (default is true)
+      adminName = "Custom Admin", // Change admin panel name
+      adminUsername = "my_admin", // Set the default username
+      adminPassword = "a_very_strong_password" // Set the default password
    )
 
 Custom Templates
