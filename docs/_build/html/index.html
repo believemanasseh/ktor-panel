@@ -14,6 +14,7 @@
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Authentication" href="authentication.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -34,9 +35,20 @@
   <section id="ktor-panel">
 <h1>Ktor Panel<a class="headerlink" href="#ktor-panel" title="Link to this heading">¶</a></h1>
 <p>` <a class="reference external" href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg" /></a> <a class="reference external" href="https://ktor.io/"><img alt="Ktor" src="https://img.shields.io/badge/Ktor-3.0.2+-blue.svg" /></a> <a class="reference external" href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg" /></a></p>
-<p>A lightweight, customisable admin interface library for Ktor
+<p>A lightweight, customisable and secure admin interface library for Ktor
 applications. Ktor Panel provides a simple way to manage your database
 models through an intuitive web interface with minimal configuration.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="authentication.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="authentication.html#configuring-default-credentials">Configuring Default Credentials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="authentication.html#disabling-authentication">Disabling Authentication</a></li>
+</ul>
+</li>
+</ul>
+</div>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <section id="gradle-kotlin-dsl">
@@ -124,10 +136,12 @@ models through an intuitive web interface with minimal configuration.</p>
 <section id="custom-configuration">
 <h3>Custom Configuration<a class="headerlink" href="#custom-configuration" title="Link to this heading">¶</a></h3>
 <div class="highlight-kotlin notranslate"><div class="highlight"><pre><span></span><span class="kd">val</span><span class="w"> </span><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Configuration</span><span class="p">(</span>
-<span class="w">    </span><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;dashboard&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">// Change URL to /dashboard</span>
-<span class="w">    </span><span class="n">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// Set index endpoint</span>
-<span class="w">    </span><span class="n">setAuthentication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">   </span><span class="c1">// Enable authentication</span>
-<span class="w">    </span><span class="n">adminName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Custom Admin&quot;</span><span class="w">  </span><span class="c1">// Change admin panel name</span>
+<span class="w">   </span><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;dashboard&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">// Change URL to /dashboard</span>
+<span class="w">   </span><span class="n">endpoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// Set index endpoint</span>
+<span class="w">   </span><span class="n">setAuthentication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">   </span><span class="c1">// Enable authentication (default is true)</span>
+<span class="w">   </span><span class="n">adminName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Custom Admin&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">// Change admin panel name</span>
+<span class="w">   </span><span class="n">adminUsername</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;my_admin&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">// Set the default username</span>
+<span class="w">   </span><span class="n">adminPassword</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;a_very_strong_password&quot;</span><span class="w"> </span><span class="c1">// Set the default password</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -137,6 +151,7 @@ models through an intuitive web interface with minimal configuration.</p>
 <p>Create your own Mustache templates in your resources directory to
 override the defaults:</p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-login.hbs</span></code> - Login form template</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-index.hbs</span></code> - Main dashboard template</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-list.hbs</span></code> - List view for database records</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">kt-panel-create.hbs</span></code> - Form for creating new records</p></li>
@@ -197,7 +212,7 @@ Inspiration for this project</p></li>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="#">Ktor Admin</a></h1>
+<h1 class="logo"><a href="#">Ktor Panel</a></h1>
 
 
 
@@ -216,11 +231,16 @@ Inspiration for this project</p></li>
     </div>
 </search>
 <script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="authentication.html" title="next chapter">Authentication</a></li>
   </ul></li>
 </ul>
 </div>

@@ -3,9 +3,15 @@ Ktor Panel
 
 \` |Kotlin| |Ktor| |License|
 
-A lightweight, customisable admin interface library for Ktor
+A lightweight, customisable and secure admin interface library for Ktor
 applications. Ktor Panel provides a simple way to manage your database
 models through an intuitive web interface with minimal configuration.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides
+
+   authentication
 
 Installation
 ------------
@@ -104,10 +110,12 @@ Custom Configuration
 .. code:: kotlin
 
    val config = Configuration(
-       url = "dashboard",          // Change URL to /dashboard
-       endpoint = "/",             // Set index endpoint
-       setAuthentication = true,   // Enable authentication
-       adminName = "Custom Admin"  // Change admin panel name
+      url = "dashboard",          // Change URL to /dashboard
+      endpoint = "/",             // Set index endpoint
+      setAuthentication = true,   // Enable authentication (default is true)
+      adminName = "Custom Admin", // Change admin panel name
+      adminUsername = "my_admin", // Set the default username
+      adminPassword = "a_very_strong_password" // Set the default password
    )
 
 Custom Templates
@@ -116,6 +124,7 @@ Custom Templates
 Create your own Mustache templates in your resources directory to
 override the defaults:
 
+-  ``kt-panel-login.hbs`` - Login form template
 -  ``kt-panel-index.hbs`` - Main dashboard template
 -  ``kt-panel-list.hbs`` - List view for database records
 -  ``kt-panel-create.hbs`` - Form for creating new records
