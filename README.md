@@ -5,7 +5,7 @@
 [![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A lightweight, customisable admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
+A lightweight, customisable and secure admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
 your database models through an intuitive web interface with minimal configuration.
 
 ## Installation
@@ -97,10 +97,14 @@ fun Application.module() {
 val config = Configuration(
     url = "dashboard",          // Change URL to /dashboard
     endpoint = "/",             // Set index endpoint
-    setAuthentication = true,   // Enable authentication
-    adminName = "Custom Admin"  // Change admin panel name
+    setAuthentication = true,   // Enable authentication (default is true)
+    adminName = "Custom Admin", // Change admin panel name
+    adminUsername = "my_admin", // Set the default username
+    adminPassword = "a_very_strong_password" // Set the default password
 )
 ```
+
+> **Important:** For production environments, always change the default `adminUsername` and `adminPassword`.
 
 ### Custom Templates
 

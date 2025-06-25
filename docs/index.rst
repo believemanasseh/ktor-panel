@@ -3,7 +3,7 @@ Ktor Panel
 
 \` |Kotlin| |Ktor| |License|
 
-A lightweight, customisable admin interface library for Ktor
+A lightweight, customisable and secure admin interface library for Ktor
 applications. Ktor Panel provides a simple way to manage your database
 models through an intuitive web interface with minimal configuration.
 
@@ -94,6 +94,12 @@ Add to your Ktor application
        // Add admin panel
        configureAdminPanel()
    }
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides
+
+   authentication
 
 Customisation
 -------------
