@@ -5,8 +5,8 @@
 [![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A lightweight, customisable and secure admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
-your database models through an intuitive web interface with minimal configuration.
+A lightweight, customisable admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
+your database models through an intuitive and secure web interface with minimal configuration.
 
 ## Installation
 
