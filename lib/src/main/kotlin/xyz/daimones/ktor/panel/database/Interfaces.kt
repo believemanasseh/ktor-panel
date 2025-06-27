@@ -1,16 +1,70 @@
 package xyz.daimones.ktor.panel.database
 
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
+import kotlin.reflect.KClass
+import org.jetbrains.exposed.dao.IntEntity
 
+/**
+ * Interface for database access objects (DAOs).
+ * This interface defines the methods that any DAO should implement to interact with the database.
+ * It is designed to be generic, allowing for different entity types to be handled.
+ */
 interface DatabaseAccessObjectInterface {
-    fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T?
-    fun <T> findAll(table: IntIdTable, rowMapper: (ResultRow) -> T): List<T?>
-    fun <T> findByUsername(username: String, table: IntIdTable, rowMapper: (ResultRow) -> T): T?
-    fun save(table: IntIdTable, saveData: (UpdateBuilder<*>) -> Unit): EntityID<Int>
-    fun update(id: Int, table: IntIdTable, updateColumns: (UpdateBuilder<*>) -> Unit): Int
-    fun delete(id: Int, table: IntIdTable): Int
-    fun createTable(table: IntIdTable)
+    /**
+     * Finds an entity by its primary key.
+     * This is a generic method that can be used to find any entity type.
+     * @param id The primary key of the entity to find.
+     * @param entityClass The KClass of the entity to find.
+     * @return The found entity of type T, or null if not found.
+     */
+    fun <T : Any> findById(id: Int, entityClass: KClass<T>): T?
+
+    /**
+     * Finds all entities of a given type.
+     * This is a generic method that can be used to find any entity type.
+     * @param entityClass The KClass of the entity to find.
+     * @return A list of all entities of type T.
+     */
+    fun <T : Any> findAll(entityClass: KClass<T>): List<T?>
+
+    /**
+     * Finds an entity by its username.
+     * This is a generic method that can be used to find any entity with a username field.
+     * @param username The username to search for.
+     * @param entityClass The KClass of the entity to find.
+     * @return The found entity of type T, or null if not found.
+     */
+    fun <T : Any> find(username: String, entityClass: KClass<T>): T?
+
+    /**
+     * Saves a new entity.
+     * This is the most type-safe approach. The view layer is responsible for
+     * creating the entity object from form data.
+     * @param entity The entity to save.
+     * @return The saved entity.
+     */
+    fun <T : Any> save(entity: T): T
+
+    /**
+     * Updates an existing entity.
+     * This is the most type-safe approach. The view layer is responsible for
+     * creating the entity object from form data.
+     * @param entity The entity to update.
+     * @return The updated entity.
+     */
+    fun <T: Any> update(entity: T): T
+
+    /**
+     * Deletes an entity by its primary key.
+     * @param id The primary key of the entity to delete.
+     * @param entityClass The KClass of the entity to delete.
+     * @return The number of rows affected (should be 1 if successful).
+     */
+    fun <T: Any> delete(id: Int, entityClass: KClass<T>): T?
+
+    /**
+     * Creates a table for the given entity class.
+     * This is a generic method that can be used to create any table.
+     * @param entityClass The KClass of the entity for which to create the table.
+     */
+    fun <T: Any> createTable(entityClass: KClass<T>)
 }
