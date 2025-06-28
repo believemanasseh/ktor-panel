@@ -12,6 +12,7 @@ interface DatabaseAccessObjectInterface {
     /**
      * Finds an entity by its primary key.
      * This is a generic method that can be used to find any entity type.
+     * 
      * @param id The primary key of the entity to find.
      * @param entityClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
@@ -21,6 +22,7 @@ interface DatabaseAccessObjectInterface {
     /**
      * Finds all entities of a given type.
      * This is a generic method that can be used to find any entity type.
+     * 
      * @param entityClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
@@ -29,6 +31,7 @@ interface DatabaseAccessObjectInterface {
     /**
      * Finds an entity by its username.
      * This is a generic method that can be used to find any entity with a username field.
+     * 
      * @param username The username to search for.
      * @param entityClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
@@ -37,8 +40,18 @@ interface DatabaseAccessObjectInterface {
 
     /**
      * Saves a new entity.
-     * This is the most type-safe approach. The view layer is responsible for
-     * creating the entity object from form data.
+     * This method is for the ExposedDao implementation.
+     * 
+     * @param data The data to save, which is a map.
+     * @param entityClass The KClass of the entity to save.
+     * @return The saved entity of type T.
+     */
+    fun <T : Any> save(data: Map<String, Any>, entityClass: KClass<T>): T
+
+    /**
+     * Saves a new entity.
+     * A convenience overload for type-safe frameworks like JPA.
+     * 
      * @param entity The entity to save.
      * @return The saved entity.
      */
@@ -46,8 +59,18 @@ interface DatabaseAccessObjectInterface {
 
     /**
      * Updates an existing entity.
-     * This is the most type-safe approach. The view layer is responsible for
-     * creating the entity object from form data.
+     * This method is for the ExposedDao implementation.
+     * 
+     * @param data The data to update, which is a map.
+     * @param entityClass The KClass of the entity to update.
+     * @return The updated entity of type T.
+     */
+    fun <T : Any> update(data: Map<String, Any>, entityClass: KClass<T>): T
+
+    /**
+     * Updates an existing entity.
+     * A convenience overload for type-safe frameworks like JPA.
+     * 
      * @param entity The entity to update.
      * @return The updated entity.
      */
@@ -55,6 +78,7 @@ interface DatabaseAccessObjectInterface {
 
     /**
      * Deletes an entity by its primary key.
+     * 
      * @param id The primary key of the entity to delete.
      * @param entityClass The KClass of the entity to delete.
      * @return The number of rows affected (should be 1 if successful).
@@ -63,6 +87,7 @@ interface DatabaseAccessObjectInterface {
 
     /**
      * Creates a table for the given entity class.
+     * 
      * This is a generic method that can be used to create any table.
      * @param entityClass The KClass of the entity for which to create the table.
      */

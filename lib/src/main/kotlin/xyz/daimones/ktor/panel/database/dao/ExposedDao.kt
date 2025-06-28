@@ -1,60 +1,220 @@
 package xyz.daimones.ktor.panel.database.dao
 
+import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.KMutableProperty1
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.UpdateBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.database.AdminUsers
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.AdminUser
 
-class ExposedDao(private val database: Database) : DatabaseAccessObjectInterface {
-    override fun <T> findById(id: Int, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {
-        return transaction(this.database) {
-            val resultRow = table.selectAll().where { table.id eq id }.singleOrNull()
-            resultRow?.let { rowMapper(it) }
-        }
+/**
+ * ExposedDao is an implementation of DatabaseAccessObjectInterface using Exposed ORM.
+ * It provides methods to interact with the database, including CRUD operations and table creation.
+ * 
+ * @property database The Exposed Database instance used for transactions.
+ * @property entityCompanions A list of pairs containing KClass and IntEntityClass for registered entities.
+ */
+class ExposedDao(private val database: Database, private val entityCompanions: List<Pair<KClass<IntEntity>, IntEntityClass<IntEntity>>>) : DatabaseAccessObjectInterface {
+    // The registry stores the powerful companion objects themselves.
+    // It's created once when the DAO is initialised.
+    private val companionRegistry: Map<KClass<out IntEntity>, IntEntityClass<IntEntity>> =
+        entityCompanions.toMap()
+
+    /**
+     * Retrieves the companion object for a given entity class.
+     * This method checks the companion registry to find the appropriate IntEntityClass for the given entity class.
+     * 
+     * @param entityClass The KClass of the entity for which to retrieve the companion object.
+     * @return The IntEntityClass companion object for the specified entity class.
+     * @throws IllegalArgumentException if the entity class is not registered with this DAO.
+     */
+    private fun <T : Any> getCompanion(entityClass: KClass<T>): IntEntityClass<IntEntity> {
+        @Suppress("UNCHECKED_CAST")
+        return companionRegistry[entityClass as KClass<IntEntity>]
+            ?: throw IllegalArgumentException("Entity class '${entityClass.simpleName}' is not registered with this DAO.")
     }
 
-    override fun <T> findAll(table: IntIdTable, rowMapper: (ResultRow) -> T): List<T?> {
-        return transaction(this.database) {
-            val resultRow = table.selectAll()
-            resultRow.map { rowMapper(it) }
-        }
-    }
+    /**
+     * Copies properties from the source object to the target IntEntity.
+     * This is a utility function to avoid code duplication in save and update methods.
+     * 
+     * @param source The source object from which to copy properties.
+     * @param target The target IntEntity to which properties will be copied.
+     */
+    private fun copyProperties(source: Any, target: IntEntity) {
+        val targetProperties = target::class.memberProperties
+            .filterIsInstance<KMutableProperty1<*, *>>()
+            .associateBy { it.name }
 
-    override fun <T> findByUsername(username: String, table: IntIdTable, rowMapper: (ResultRow) -> T): T? {
-        return transaction(this.database) {
-            val resultRow = table.selectAll().where { AdminUsers.username eq username }.withDistinct()
-                .firstOrNull()
-            resultRow?.let { rowMapper(it) }
-        }
-    }
+        if (source is Map<*, *>) {
+            // If the source is a Map, iterate through its key-value pairs.
+            for ((key, value) in source) {
+                val name = key as? String ?: continue 
+                if (name == "id") continue
 
-    override fun update(id: Int, table: IntIdTable, updateColumns: (UpdateBuilder<*>) -> Unit): Int {
-        return transaction(this.database) {
-            table.update({ table.id eq id }) {
-                updateColumns(it)
+                targetProperties[name]?.let { targetProp ->
+                    @Suppress("UNCHECKED_CAST")
+                    (targetProp as KMutableProperty1<Any, Any?>).set(target, value)
+                }
+            }
+        } else {
+            // This is the original logic that works for data classes.
+            val sourceProperties = source::class.memberProperties.associateBy { it.name }
+            for ((name, sourceProp) in sourceProperties) {
+                if (name == "id") continue
+
+                targetProperties[name]?.let { targetProp ->
+                    val value = sourceProp.call(source)
+                    @Suppress("UNCHECKED_CAST")
+                    (targetProp as KMutableProperty1<Any, Any?>).set(target, value)
+                }
             }
         }
     }
 
-    override fun save(table: IntIdTable, saveData: (UpdateBuilder<*>) -> Unit): EntityID<Int> {
-        return transaction(this.database) {
-            table.insertAndGetId { saveData(it) }
+    /**
+     * Finds an entity by its primary key.
+     * 
+     * @param id The primary key of the entity to find.
+     * @param entityClass The KClass of the entity to find.
+     * @return The found entity of type T, or null if not found.
+     */
+    override fun <T : Any> findById(id: Int, entityClass: KClass<T>): T? {
+        val companion = getCompanion(entityClass)
+
+        val result = transaction(this.database) {
+            companion.findById(id)
         }
+        @Suppress("UNCHECKED_CAST")
+        return result as? T?
     }
 
-    override fun delete(id: Int, table: IntIdTable): Int {
-        return transaction(this.database) {
-            table.deleteWhere { table.id eq id }
+    /**
+     * Finds all entities of a given type.
+     * 
+     * @param entityClass The KClass of the entity to find.
+     * @return A list of all entities of type T.
+     */
+    override fun <T : Any> findAll(entityClass: KClass<T>): List<T?> {
+        val companion = getCompanion(entityClass)
+        val result = transaction(this.database) {
+            companion.all()
         }
+        @Suppress("UNCHECKED_CAST")
+        return result as? List<T?> ?: emptyList()
+
+
     }
 
-    override fun createTable(table: IntIdTable) {
-        transaction(this.database) {
-            SchemaUtils.create(table)
+    /**
+     * Finds an entity by its username.
+     * 
+     * @param username The username to search for.
+     * @param entityClass The KClass of the entity to find.
+     * @return The found entity of type T, or null if not found.
+     */
+    override fun <T : Any> find(
+            username: String,
+            entityClass: KClass<T>,
+    ): T? {
+        val companion = getCompanion(entityClass)
+        val result = transaction(this.database) {
+            companion.find { AdminUsers.username eq username }.firstOrNull()
         }
+        @Suppress("UNCHECKED_CAST")
+        return result as? T?
+    }
+
+    /**
+     * Updates an existing entity.
+     * This method uses a map of field names to values to update the entity.
+     * 
+     * @param entityClass The KClass of the entity to update.
+     * @param data A map of field names to values to update.
+     * @return The updated entity.
+     * @throws IllegalArgumentException if the entity with the given ID is not found.
+     */
+    override fun <T: Any> update(data: Map<String, Any>, entityClass: KClass<T>): T {
+        val companion = getCompanion(entityClass)
+        val updatedEntity = transaction(this.database) {
+            val id = data["id"].toString().toInt()
+            val entityToUpdate = companion.findById(id)
+                ?: throw IllegalArgumentException("Entity with id ${id} not found for update.")
+            copyProperties(data, entityToUpdate)
+            entityToUpdate
+        }
+        @Suppress("UNCHECKED_CAST")
+        return updatedEntity as T
+    }
+
+    /**
+     * This method is not supported in ExposedDao.
+     * 
+     * @param entity The entity to update.
+     * @return The updated entity.
+     * @throws NotImplementedError if this method is called directly.
+     */
+    override fun <T : Any> update(entity: T): T {
+        throw NotImplementedError("ExposedDao requires a map and entity class. Use update(data: Map<String, Any>, entityClass: KClass<T>) instead")
+    }
+
+    /**
+     * Saves a new entity. This method uses a map of field names to values to create the entity.
+     * 
+     * @param data A map of field names to values to save.
+     * @param entityClass The KClass of the entity to save.
+     * @return The saved entity.
+     */
+    override fun <T : Any> save(data: Map<String, Any>, entityClass: KClass<T>): T {
+        val companion = getCompanion(entityClass)
+        val savedEntity = transaction(this.database) {
+            companion.new { copyProperties(data, this) }
+        }
+        @Suppress("UNCHECKED_CAST")
+        return savedEntity as T
+    }
+
+    /**
+     * This method is not supported in ExposedDao.
+     * 
+     * @param entity The entity to save.
+     * @return The saved entity.
+     * @throws NotImplementedError if this method is called directly.
+     */
+    override fun <T: Any> save(entity: T): T {
+        throw NotImplementedError("ExposedDao requires a map and entity class. Use save(data: Map<String, Any>, entityClass: KClass<T>) instead.")
+    }
+
+    /**
+     * Deletes an entity by its primary key.
+     * 
+     * @param id The primary key of the entity to delete.
+     * @param entityClass The KClass of the entity to delete.
+     * @return The deleted entity, or null if no entity was found with the given ID.
+     */
+    override fun <T: Any> delete(id: Int, entityClass: KClass<T>): T? {
+        val companion = getCompanion(entityClass)
+        val obj = transaction(this.database) { companion.findById(id) }
+        @Suppress("UNCHECKED_CAST")
+        return obj?.id as T?
+    }
+
+    /**
+     * Creates a table for the given entity class.
+     * This method uses Exposed's SchemaUtils to create the table in the database.
+     * 
+     * @param entityClass The KClass of the entity for which to create the table.
+     */
+    override fun <T: Any> createTable(entityClass: KClass<T>) {
+        val companion = getCompanion(entityClass)
+        transaction(this.database) { SchemaUtils.create(companion.table) }
     }
 }
