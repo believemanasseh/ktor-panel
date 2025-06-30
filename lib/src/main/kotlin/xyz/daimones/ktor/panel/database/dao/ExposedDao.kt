@@ -108,12 +108,10 @@ class ExposedDao(
     override fun <T : Any> findAll(kClass: KClass<T>): List<T?> {
         val companion = getEntityCompanion(kClass)
         val result = transaction(this.database) {
-            companion.all()
+            companion.all().toList()
         }
         @Suppress("UNCHECKED_CAST")
         return result as? List<T?> ?: emptyList()
-
-
     }
 
     /**

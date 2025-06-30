@@ -63,11 +63,8 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @return The found entity of type T, or null if not found.
      */
     override fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
-        val entityManager = entityManagerFactory.createEntityManager()
-        return try {
+        return execute { entityManager ->
             entityManager.find(kClass.java, id)
-        } finally {
-            entityManager.close()
         }
     }
 
