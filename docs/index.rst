@@ -77,8 +77,8 @@ Basic Setup
        val admin = Admin(this, database, config)
 
        // Add your models to the admin panel
-       admin.addView(ModelView(Users))
-       admin.addView(ModelView(Products))
+       admin.addView(ModelView(User))
+       admin.addView(ModelView(Product))
    }
 
 Add to your Ktor application
