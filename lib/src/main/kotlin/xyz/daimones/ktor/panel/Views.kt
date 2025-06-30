@@ -18,10 +18,10 @@ import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.json.JsonBColumnType
 import org.mindrot.jbcrypt.BCrypt
-import xyz.daimones.ktor.panel.database.AdminUser
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
+import xyz.daimones.ktor.panel.database.entities.AdminUser
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.collections.set

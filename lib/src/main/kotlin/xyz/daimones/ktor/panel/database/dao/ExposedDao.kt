@@ -6,9 +6,9 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
-import xyz.daimones.ktor.panel.database.AdminUser
-import xyz.daimones.ktor.panel.database.AdminUsers
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.entities.AdminUser
+import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties

@@ -1,4 +1,4 @@
-package xyz.daimones.ktor.panel.database
+package xyz.daimones.ktor.panel.database.entities
 
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -7,11 +7,6 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
 
-enum class AdminRole {
-    SUPER_ADMIN,
-    EDITOR,
-    VIEWER
-}
 
 object AdminUsers : IntIdTable("admin_users") {
     val username = varchar("username", 255).uniqueIndex()
