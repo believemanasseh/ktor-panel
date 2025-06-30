@@ -5,24 +5,23 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.ModelView
-import xyz.daimones.ktor.panel.database.AdminUser
-import xyz.daimones.ktor.panel.database.AdminUsers
+import xyz.daimones.ktor.panel.database.entities.AdminUser
+import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class LibraryTest {
+class ExposedTest {
     private lateinit var database: Database
 
     @BeforeTest
-    fun setup() = testApplication {
-        database =
-            Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
+    fun setup() {
+        database = Database.connect(url = "jdbc:h2:mem:exposed_test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
         transaction(database) { SchemaUtils.create(AdminUsers) }
     }
 
     @Test
-    fun testAdminClass() = testApplication {
+    fun testAdminInit() = testApplication {
         application {
             val configuration = Configuration(setAuthentication = false)
             val admin = Admin(this, database, configuration)

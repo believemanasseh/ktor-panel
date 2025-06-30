@@ -26,6 +26,9 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.hibernate.core)
 
+    // Test runtime dependencies
+    testRuntimeOnly(libs.hibernate.core)
+
     // These dependencies are exported to consumers,
     // that is to say found on their compile classpath.
     api(libs.commons.math3)
@@ -65,7 +68,7 @@ publishing {
                 developers {
                     developer {
                         id = "believemanasseh"
-                        name = "Believe Manasseh"
+                        name = "Illucid Mind"
                         email = "believemanasseh@gmail.com"
                     }
                 }
