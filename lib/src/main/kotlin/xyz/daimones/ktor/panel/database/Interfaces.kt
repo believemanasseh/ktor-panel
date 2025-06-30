@@ -1,7 +1,6 @@
 package xyz.daimones.ktor.panel.database
 
 import kotlin.reflect.KClass
-import org.jetbrains.exposed.dao.IntEntity
 
 /**
  * Interface for database access objects (DAOs).
@@ -14,39 +13,39 @@ interface DatabaseAccessObjectInterface {
      * This is a generic method that can be used to find any entity type.
      * 
      * @param id The primary key of the entity to find.
-     * @param entityClass The KClass of the entity to find.
+     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    fun <T : Any> findById(id: Int, entityClass: KClass<T>): T?
+    fun <T : Any> findById(id: Int, kClass: KClass<T>): T?
 
     /**
      * Finds all entities of a given type.
      * This is a generic method that can be used to find any entity type.
-     * 
-     * @param entityClass The KClass of the entity to find.
+     *
+     * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    fun <T : Any> findAll(entityClass: KClass<T>): List<T?>
+    fun <T : Any> findAll(kClass: KClass<T>): List<T?>
 
     /**
      * Finds an entity by its username.
      * This is a generic method that can be used to find any entity with a username field.
      * 
      * @param username The username to search for.
-     * @param entityClass The KClass of the entity to find.
+     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    fun <T : Any> find(username: String, entityClass: KClass<T>): T?
+    fun <T : Any> find(username: String, kClass: KClass<T>): T?
 
     /**
      * Saves a new entity.
      * This method is for the ExposedDao implementation.
      * 
      * @param data The data to save, which is a map.
-     * @param entityClass The KClass of the entity to save.
+     * @param kClass The KClass of the entity to save.
      * @return The saved entity of type T.
      */
-    fun <T : Any> save(data: Map<String, Any>, entityClass: KClass<T>): T
+    fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T
 
     /**
      * Saves a new entity.
@@ -62,10 +61,10 @@ interface DatabaseAccessObjectInterface {
      * This method is for the ExposedDao implementation.
      * 
      * @param data The data to update, which is a map.
-     * @param entityClass The KClass of the entity to update.
+     * @param kClass The KClass of the entity to update.
      * @return The updated entity of type T.
      */
-    fun <T : Any> update(data: Map<String, Any>, entityClass: KClass<T>): T
+    fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T
 
     /**
      * Updates an existing entity.
@@ -80,16 +79,16 @@ interface DatabaseAccessObjectInterface {
      * Deletes an entity by its primary key.
      * 
      * @param id The primary key of the entity to delete.
-     * @param entityClass The KClass of the entity to delete.
+     * @param kClass The KClass of the entity to delete.
      * @return The number of rows affected (should be 1 if successful).
      */
-    fun <T: Any> delete(id: Int, entityClass: KClass<T>): T?
+    fun <T : Any> delete(id: Int, kClass: KClass<T>): T?
 
     /**
      * Creates a table for the given entity class.
      * 
      * This is a generic method that can be used to create any table.
-     * @param entityClass The KClass of the entity for which to create the table.
+     * @param kClass The KClass of the entity for which to create the table.
      */
-    fun <T: Any> createTable(entityClass: KClass<T>)
+    fun <T : Any> createTable(kClass: KClass<T>)
 }

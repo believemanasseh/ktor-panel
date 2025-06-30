@@ -1,5 +1,7 @@
 package xyz.daimones.ktor.panel
 
+import jakarta.persistence.EntityManagerFactory
+
 /**
  * Data classes for the Ktor Panel configuration and settings.
  *
@@ -32,6 +34,8 @@ package xyz.daimones.ktor.panel
  * 
  * @property adminPassword The default password for the admin user. This is used for authentication purposes.
  *             Default is "admin". This can be overridden in the admin user management interface.
+ *
+ * @property entityManagerFactory Optional JPA EntityManagerFactory for database operations.
  * 
  * @see Admin
  * @see BaseView
@@ -42,6 +46,7 @@ data class Configuration(
     val setAuthentication: Boolean = true,
     val adminName: String = "Admin",
     val adminUsername: String = "admin",
-    val adminPassword: String = "admin"
+    val adminPassword: String = "admin",
+    val entityManagerFactory: EntityManagerFactory? = null
 )
 

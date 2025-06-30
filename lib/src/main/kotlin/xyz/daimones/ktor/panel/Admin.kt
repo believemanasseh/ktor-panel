@@ -1,7 +1,12 @@
 package xyz.daimones.ktor.panel
 
 import io.ktor.server.application.*
+import jakarta.persistence.Entity
+import jakarta.persistence.EntityManagerFactory
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
+import kotlin.reflect.KClass
 
 /**
  * Base admin class for the Ktor Panel library.
@@ -23,13 +28,21 @@ class Admin(
      * Collection of model views registered with this admin panel.
      * Each view represents a database table that will be managed through the admin interface.
      */
-    private val modelViews: MutableList<ModelView> = mutableListOf()
+    private val modelViews: MutableList<ModelView<*>> = mutableListOf()
 
     /**
      * List of table names retrieved from the database.
      * Used for generating navigation and displaying available tables in the admin interface.
      */
     private val tableNames: MutableList<String> = mutableListOf()
+
+    /**
+     * List of entity classes registered with this admin panel.
+     * Each pair contains the KClass of the entity and its corresponding IntEntityClass.
+     * This is used for type-safe database operations and model management.
+     */
+    private val entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>> =
+        mutableListOf()
 
     /**
      * Returns the number of model views registered with this admin panel.
@@ -51,10 +64,31 @@ class Admin(
      *
      * @param view ModelView instance to be added to the admin panel
      */
-    fun addView(view: ModelView) {
-        this.tableNames.add(view.model.tableName)
+    fun addView(view: ModelView<*>) {
+        val tableName = if (view.model is IntEntityClass<IntEntity>) {
+            view.model.table.tableName
+        } else if (view.model::class.annotations.any { it is Entity }) {
+            view.model::class.simpleName.toString()
+        } else {
+            throw IllegalArgumentException("Model must be an IntEntity or annotated with @Entity")
+        }
+        this.tableNames.add(tableName)
         this.modelViews.add(view)
-        view.renderPageViews(this.database, this.application, this.configuration, this.tableNames)
+
+        if (view.model is IntEntityClass<IntEntity>) {
+            // If the model is an IntEntityClass, we can safely add it to the entity class pairs.
+            @Suppress("UNCHECKED_CAST")
+            this.entityCompanions.add(Pair(view.model::class as KClass<IntEntityClass<IntEntity>>, view.model))
+        }
+
+        view.renderPageViews(
+            database = this.database,
+            application = this.application,
+            configuration = this.configuration,
+            tableNames = this.tableNames,
+            entityCompanions = if (view.model is IntEntityClass<IntEntity>) this.entityCompanions.toList() else null,
+            entityManagerFactory = if (this.configuration.entityManagerFactory is EntityManagerFactory) this.configuration.entityManagerFactory else null
+        )
     }
 
     /**
@@ -65,7 +99,7 @@ class Admin(
      *
      * @param views List containing model views to be added to the admin panel
      */
-    fun addViews(views: MutableList<ModelView>) {
+    fun addViews(views: List<ModelView<*>>) {
         for (view in views) {
             this.addView(view)
         }

@@ -3,8 +3,8 @@ package xyz.daimones.ktor.panel.database.dao
 import jakarta.persistence.EntityManager
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Persistence
-import kotlin.reflect.KClass
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import kotlin.reflect.KClass
 
 /**
  * Implementation of the DatabaseAccessObjectInterface using JPA. This class provides methods to
@@ -14,7 +14,7 @@ import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
  * @property entityManagerFactory The EntityManagerFactory used to create EntityManagers.
  */
 class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
-        DatabaseAccessObjectInterface {
+    DatabaseAccessObjectInterface {
     /**
      * Executes a read operation using the provided block of code. This method creates an
      * EntityManager, executes the block, and ensures the EntityManager is closed afterwards.
@@ -24,10 +24,8 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      */
     private fun <R> execute(block: (EntityManager) -> R): R {
         val entityManager = entityManagerFactory.createEntityManager()
-        return try {
-            block(entityManager)
-        } finally {
-            entityManager.close()
+        return entityManager.use { manager ->
+            block(manager)
         }
     }
 
@@ -99,10 +97,10 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
         return execute { entityManager ->
             val jpql = "SELECT e FROM ${entityClass.simpleName} e WHERE e.username = :username"
             entityManager
-                    .createQuery(jpql, entityClass.java)
-                    .setParameter("username", username)
-                    .resultList
-                    .firstOrNull()
+                .createQuery(jpql, entityClass.java)
+                .setParameter("username", username)
+                .resultList
+                .firstOrNull()
         }
     }
 
@@ -126,7 +124,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @throws NotImplementedError Always throws this error as this operation is not supported
      * @see save(entity: T) Use this method instead with an entity instance
      */
-    override fun <T : Any> save(data: Map<String, Any?>, entityClass: KClass<T>): T {
+    override fun <T : Any> save(data: Map<String, Any>, entityClass: KClass<T>): T {
         throw NotImplementedError("JpaDao requires an entity instance. Use save(entity: T) instead")
     }
 
@@ -152,7 +150,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      */
     override fun <T : Any> update(data: Map<String, Any>, entityClass: KClass<T>): T {
         throw NotImplementedError(
-                "JpaDao requires an entity instance. Use update(entity: T) instead"
+            "JpaDao requires an entity instance. Use update(entity: T) instead"
         )
     }
 
@@ -168,7 +166,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
         return executeInTransaction { entityManager ->
             val entityToDelete = entityManager.find(entityClass.java, id)
             entityToDelete?.let { entityManager.remove(it) }
-            @Suppress("UNCHECKED_CAST") 
+            @Suppress("UNCHECKED_CAST")
             id as? T?
         }
     }
@@ -197,14 +195,14 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
         schemaGenProperties["hibernate.hbm2ddl.auto"] = "create"
 
         val tempSchemaFactory: EntityManagerFactory? =
-                try {
-                    Persistence.createEntityManagerFactory("schema-generator", schemaGenProperties)
-                } catch (e: Exception) {
-                    println(
-                            "Schema generation for ${entityClass.simpleName} may have been skipped: ${e.message}"
-                    )
-                    null
-                }
+            try {
+                Persistence.createEntityManagerFactory("schema-generator", schemaGenProperties)
+            } catch (e: Exception) {
+                println(
+                    "Schema generation for ${entityClass.simpleName} may have been skipped: ${e.message}"
+                )
+                null
+            }
 
         tempSchemaFactory?.close()
     }
