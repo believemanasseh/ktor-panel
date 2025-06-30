@@ -13,14 +13,9 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.ktor.server.core)
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.dao)
-    implementation(libs.exposed.jdbc)
-    implementation(libs.exposed.json)
-    implementation(libs.exposed.java.time)
-    implementation(libs.ktor.server.mustache)
+    // Internal dependencies
     implementation(libs.jbcrypt)
+    implementation(libs.kotlin.reflect)
 
     // Test dependencies
     testImplementation(libs.junit.jupiter.engine)
@@ -29,11 +24,19 @@ dependencies {
     testImplementation(libs.logback.classic)
     testImplementation(libs.h2)
     testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.hibernate.core)
 
-    // This dependency is exported to consumers,
+    // These dependencies are exported to consumers,
     // that is to say found on their compile classpath.
     api(libs.commons.math3)
-
+    api(libs.exposed.core)
+    api(libs.exposed.dao)
+    api(libs.exposed.jdbc)
+    api(libs.exposed.json)
+    api(libs.exposed.java.time)
+    api(libs.ktor.server.core)
+    api(libs.ktor.server.mustache)
+    api(libs.jakarta.persistence.api)
 }
 
 java {
@@ -79,6 +82,12 @@ publishing {
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }
+
+//tasks.withType<Test> {
+//    testLogging {
+//        showStandardStreams = true
+//    }
+//}
 
 sourceSets {
     main {
