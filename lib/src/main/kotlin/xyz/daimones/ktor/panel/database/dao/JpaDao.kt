@@ -59,13 +59,13 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * the specified class with the given ID.
      *
      * @param id The primary key of the entity to find.
-     * @param entityClass The KClass of the entity to find.
+     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> findById(id: Int, entityClass: KClass<T>): T? {
+    override fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
         val entityManager = entityManagerFactory.createEntityManager()
         return try {
-            entityManager.find(entityClass.java, id)
+            entityManager.find(kClass.java, id)
         } finally {
             entityManager.close()
         }
@@ -75,13 +75,13 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * Finds all entities of a given type. This method uses the EntityManager to create a query that
      * selects all entities of the specified class.
      *
-     * @param entityClass The KClass of the entity to find.
+     * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    override fun <T : Any> findAll(entityClass: KClass<T>): List<T> {
+    override fun <T : Any> findAll(kClass: KClass<T>): List<T> {
         return execute { entityManager ->
-            val jpql = "SELECT e FROM ${entityClass.simpleName} e"
-            entityManager.createQuery(jpql, entityClass.java).resultList
+            val jpql = "SELECT e FROM ${kClass.simpleName} e"
+            entityManager.createQuery(jpql, kClass.java).resultList
         }
     }
 
@@ -90,14 +90,14 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * selects an entity with the specified username.
      *
      * @param username The username to search for.
-     * @param entityClass The KClass of the entity to find.
+     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> find(username: String, entityClass: KClass<T>): T? {
+    override fun <T : Any> find(username: String, kClass: KClass<T>): T? {
         return execute { entityManager ->
-            val jpql = "SELECT e FROM ${entityClass.simpleName} e WHERE e.username = :username"
+            val jpql = "SELECT e FROM ${kClass.simpleName} e WHERE e.username = :username"
             entityManager
-                .createQuery(jpql, entityClass.java)
+                .createQuery(jpql, kClass.java)
                 .setParameter("username", username)
                 .resultList
                 .firstOrNull()
@@ -119,12 +119,12 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * This method is not supported in JpaDao.
      *
      * @param data Map of property names to values to save
-     * @param entityClass Kotlin class of the entity to save
+     * @param kClass Kotlin class of the entity to save
      * @return Entity instance of type T
      * @throws NotImplementedError Always throws this error as this operation is not supported
      * @see save(entity: T) Use this method instead with an entity instance
      */
-    override fun <T : Any> save(data: Map<String, Any>, entityClass: KClass<T>): T {
+    override fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
         throw NotImplementedError("JpaDao requires an entity instance. Use save(entity: T) instead")
     }
 
@@ -143,12 +143,12 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * This method is not supported in JpaDao.
      *
      * @param data Map of property names to values to save
-     * @param entityClass Kotlin class of the entity to save
+     * @param kClass Kotlin class of the entity to save
      * @return Entity instance of type T
      * @throws NotImplementedError Always throws this error as this operation is not supported
      * @see update(entity: T) Use this method instead with an entity instance
      */
-    override fun <T : Any> update(data: Map<String, Any>, entityClass: KClass<T>): T {
+    override fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
         throw NotImplementedError(
             "JpaDao requires an entity instance. Use update(entity: T) instead"
         )
@@ -159,12 +159,12 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * to find the entity by its ID and then removes it.
      *
      * @param id The primary key of the entity to delete
-     * @param entityClass The Kotlin class of the entity type
+     * @param kClass The Kotlin class of the entity type
      * @return The deleted entity, or null if no entity was found with the given ID
      */
-    override fun <T : Any> delete(id: Int, entityClass: KClass<T>): T? {
+    override fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
         return executeInTransaction { entityManager ->
-            val entityToDelete = entityManager.find(entityClass.java, id)
+            val entityToDelete = entityManager.find(kClass.java, id)
             entityToDelete?.let { entityManager.remove(it) }
             @Suppress("UNCHECKED_CAST")
             id as? T?
@@ -175,9 +175,9 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * Creates a table for the given entity class. This method uses JPA's schema generation features
      * to create the table in the database.
      *
-     * @param entityClass The KClass of the entity for which to create the table.
+     * @param kClass The KClass of the entity for which to create the table.
      */
-    override fun <T : Any> createTable(entityClass: KClass<T>) {
+    override fun <T : Any> createTable(kClass: KClass<T>) {
         // Get the existing properties from the main factory.
         // This includes the database URL, user, password, and dialect.
         val existingProperties = entityManagerFactory.properties
@@ -188,7 +188,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
         schemaGenProperties["jakarta.persistence.schema-generation.database.action"] = "create"
 
         // This tells the provider which classes to consider for table creation.
-        schemaGenProperties["jakarta.persistence.managed-class"] = entityClass.java.name
+        schemaGenProperties["jakarta.persistence.managed-class"] = kClass.java.name
 
         // This is a common Hibernate property to prevent it from validating the rest of the schema.
         // It helps isolate the creation to just what's needed.
@@ -199,7 +199,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
                 Persistence.createEntityManagerFactory("schema-generator", schemaGenProperties)
             } catch (e: Exception) {
                 println(
-                    "Schema generation for ${entityClass.simpleName} may have been skipped: ${e.message}"
+                    "Schema generation for ${kClass.simpleName} may have been skipped: ${e.message}"
                 )
                 null
             }
