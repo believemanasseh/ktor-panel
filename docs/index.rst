@@ -73,7 +73,7 @@ Basic Setup
            adminName = "My App Admin"
        )
 
-       // Initialize admin panel
+       // Initialise admin panel
        val admin = Admin(this, database, config)
 
        // Add your models to the admin panel
