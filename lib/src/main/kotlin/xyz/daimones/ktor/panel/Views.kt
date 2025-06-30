@@ -195,10 +195,10 @@ open class BaseView<T : Any>(private val model: T) {
      *
      * @return A list of maps where each map represents a record with its ID and column values
      */
-    private fun getTableDataValues(): List<MutableMap<String, Any?>?> {
+    private fun getTableDataValues(): List<Map<String, Any?>?> {
         val entities = dao!!.findAll(model::class)
         return entities.map { entity ->
-            val rowData = mutableMapOf<String, Any?>()
+            val rowData = mutableListOf<Any?>()
             if (model is IntEntityClass<IntEntity>) {
                 var actualValue: Any?
                 model.table.columns.forEach { column ->
@@ -214,13 +214,17 @@ open class BaseView<T : Any>(private val model: T) {
                         }
                         actualValue = value
                     } else {
-                        actualValue = null
+                        actualValue = "null"
                     }
-
-                    rowData[column.name] = actualValue
+                    rowData.add(actualValue)
+                }
+            } else if (model::class.annotations.any { it is Entity }) {
+                model::class.memberProperties.forEach { property ->
+                    val value = property.call(entity)
+                    rowData.add(value ?: "null")
                 }
             }
-            rowData
+            mapOf("id" to rowData[0], "nums" to rowData)
         }
     }
 
@@ -236,7 +240,17 @@ open class BaseView<T : Any>(private val model: T) {
     protected fun exposeLoginView(data: MutableMap<String, Any>, template: String? = null) {
         application?.routing {
             route("/${configuration?.url}/login") {
-                get { call.respond(MustacheContent(template ?: defaultLoginView, data)) }
+                get {
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
+
+                    if (sessionId != null) {
+                        call.respond(MustacheContent(template ?: defaultLoginView, data))
+                    } else {
+                        val loginUrl = "/${configuration?.url}/login"
+                        call.respondRedirect(loginUrl)
+                    }
+                }
 
                 post {
                     val params = call.receiveParameters()
@@ -245,7 +259,7 @@ open class BaseView<T : Any>(private val model: T) {
 
                     val user = dao!!.find(username.toString(), AdminUser::class)
 
-                    if (user != null) {
+                    if (user != null && BCrypt.checkpw(password.toString(), user.password)) {
                         val sessionId = UUID.randomUUID().toString()
                         call.response.cookies.append(
                             Cookie(
@@ -317,22 +331,29 @@ open class BaseView<T : Any>(private val model: T) {
         application?.routing {
             route("/${configuration?.url}/${modelPath}/list") {
                 get {
-                    val tableDataValues = getTableDataValues()
-                    val tablesData =
-                        mapOf(
-                            "headers" to headers,
-                            "data" to mapOf("values" to tableDataValues)
-                        )
-                    data["tablesData"] = tablesData
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
+                    if (sessionId != null) {
+                        val tableDataValues = getTableDataValues()
+                        val tablesData =
+                            mapOf(
+                                "headers" to headers,
+                                "data" to mapOf("values" to tableDataValues)
+                            )
+                        data["tablesData"] = tablesData
 
-                    if (successMessage != null) {
-                        data["successMessage"] = successMessage.toString()
-                        successMessage = null
+                        if (successMessage != null) {
+                            data["successMessage"] = successMessage.toString()
+                            successMessage = null
+                        } else {
+                            data.remove("successMessage")
+                        }
+
+                        call.respond(MustacheContent(template ?: defaultListView, data))
                     } else {
-                        data.remove("successMessage")
+                        val loginUrl = "/${configuration?.url}/login"
+                        call.respondRedirect(loginUrl)
                     }
-
-                    call.respond(MustacheContent(template ?: defaultListView, data))
                 }
             }
         }
@@ -361,34 +382,42 @@ open class BaseView<T : Any>(private val model: T) {
                 data["tablesData"] = tablesData
 
                 get {
-                    val columnTypes = getColumnTypes(model)
-                    val fieldsForTemplate =
-                        columnTypes.map { props ->
-                            val inputType = props["html_input_type"] as String
-                            val originalType = props["original_type"] ?: ""
-                            val isReadOnly = props["name"].equals("id", ignoreCase = true)
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
 
-                            mapOf(
-                                "name" to props["name"],
-                                "value" to props["value"],
-                                "html_input_type" to inputType,
-                                "original_type" to originalType,
-                                "is_checkbox" to (inputType == "checkbox"),
-                                "is_select" to (inputType == "select"),
-                                "is_textarea" to (inputType == "textarea"),
-                                "is_hidden" to (props["name"] == "id"),
-                                "is_readonly" to isReadOnly,
-                                "is_general_input" to
-                                        !listOf("checkbox", "select", "textarea", "hidden")
-                                            .contains(inputType)
-                                // TODO: For "is_select", we need to add an "options" list
-                                // to this map
-                                // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
-                                // to "Option 1", "selected" to true/false))
-                            )
-                        }
-                    data["fields"] = fieldsForTemplate
-                    call.respond(MustacheContent(template ?: defaultCreateView, data))
+                    if (sessionId != null) {
+                        val columnTypes = getColumnTypes(model)
+                        val fieldsForTemplate =
+                            columnTypes.map { props ->
+                                val inputType = props["html_input_type"] as String
+                                val originalType = props["original_type"] ?: ""
+                                val isReadOnly = props["name"].equals("id", ignoreCase = true)
+
+                                mapOf(
+                                    "name" to props["name"],
+                                    "value" to props["value"],
+                                    "html_input_type" to inputType,
+                                    "original_type" to originalType,
+                                    "is_checkbox" to (inputType == "checkbox"),
+                                    "is_select" to (inputType == "select"),
+                                    "is_textarea" to (inputType == "textarea"),
+                                    "is_hidden" to (props["name"] == "id"),
+                                    "is_readonly" to isReadOnly,
+                                    "is_general_input" to
+                                            !listOf("checkbox", "select", "textarea", "hidden")
+                                                .contains(inputType)
+                                    // TODO: For "is_select", we need to add an "options" list
+                                    // to this map
+                                    // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
+                                    // to "Option 1", "selected" to true/false))
+                                )
+                            }
+                        data["fields"] = fieldsForTemplate
+                        call.respond(MustacheContent(template ?: defaultCreateView, data))
+                    } else {
+                        val loginUrl = "/${configuration?.url}/login"
+                        call.respondRedirect(loginUrl)
+                    }
                 }
 
                 post {
@@ -451,78 +480,86 @@ open class BaseView<T : Any>(private val model: T) {
         application?.routing {
             route("/${configuration?.url}/${modelPath}/edit/{id}") {
                 get {
-                    val idValue =
-                        call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                    val entity = dao!!.findById(idValue, model::class)
-                    val obj = if (model is IntEntityClass<IntEntity>) {
-                        model.table.columns.associate { column ->
-                            val property = entity!!::class.memberProperties.find { it.name == column.name }
-                            val actualValue: Any?
-                            if (property != null) {
-                                // Get the value of the property.
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
+
+                    if (sessionId != null) {
+                        val idValue =
+                            call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
+                        val entity = dao!!.findById(idValue, model::class)
+                        val obj = if (model is IntEntityClass<IntEntity>) {
+                            model.table.columns.associate { column ->
+                                val property = entity!!::class.memberProperties.find { it.name == column.name }
+                                val actualValue: Any?
+                                if (property != null) {
+                                    // Get the value of the property.
+                                    val value = property.call(entity)
+                                    actualValue = if (value is EntityID<*>) value.value else value
+                                } else {
+                                    actualValue = null
+                                }
+
+                                val htmlInputType = getHtmlInputType(column)
+                                column.name to
+                                        mapOf(
+                                            "value" to actualValue,
+                                            "html_input_type" to htmlInputType,
+                                            "original_type" to
+                                                    column.columnType::class.simpleName
+                                        )
+                            }
+                        } else {
+                            model::class.memberProperties.associate { property ->
+                                val columnName = property.name
                                 val value = property.call(entity)
-                                actualValue = if (value is EntityID<*>) value.value else value
-                            } else {
-                                actualValue = null
+                                val htmlInputType = getHtmlInputType(property.returnType)
+
+                                columnName to
+                                        mapOf(
+                                            "value" to value,
+                                            "html_input_type" to htmlInputType,
+                                            "original_type" to property.returnType.toString()
+                                        )
+                            }
+                        }
+
+                        val fieldsForTemplate =
+                            obj.entries.map { (name, props) ->
+                                val inputType = props["html_input_type"] as String
+                                val originalType = props["original_type"] as? String ?: ""
+                                val isReadOnly =
+                                    name.equals("id", ignoreCase = true) ||
+                                            name.equals("created", ignoreCase = true) ||
+                                            name.equals("modified", ignoreCase = true) ||
+                                            name.equals("password", ignoreCase = true)
+
+                                mapOf(
+                                    "name" to name,
+                                    "value" to props["value"],
+                                    "html_input_type" to inputType,
+                                    "original_type" to originalType,
+                                    "is_checkbox" to (inputType == "checkbox"),
+                                    "is_select" to (inputType == "select"),
+                                    "is_textarea" to (inputType == "textarea"),
+                                    "is_readonly" to isReadOnly,
+                                    "is_general_input" to
+                                            !listOf("checkbox", "select", "textarea", "hidden")
+                                                .contains(inputType)
+                                    // TODO: For "is_select", we need to add an "options" list
+                                    // to this map
+                                    // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
+                                    // to "Option 1", "selected" to true/false))
+                                )
                             }
 
-                            val htmlInputType = getHtmlInputType(column)
-                            column.name to
-                                    mapOf(
-                                        "value" to actualValue,
-                                        "html_input_type" to htmlInputType,
-                                        "original_type" to
-                                                column.columnType::class.simpleName
-                                    )
-                        }
+                        data["fields"] = fieldsForTemplate
+                        data["idValue"] = idValue.toString()
+                        data["object"] = obj
+                        call.respond(MustacheContent(template ?: defaultDetailsView, data))
                     } else {
-                        model::class.memberProperties.associate { property ->
-                            val columnName = property.name
-                            val value = property.call(entity)
-                            val htmlInputType = getHtmlInputType(property.returnType)
-
-                            columnName to
-                                    mapOf(
-                                        "value" to value,
-                                        "html_input_type" to htmlInputType,
-                                        "original_type" to property.returnType.toString()
-                                    )
-                        }
+                        val loginUrl = "/${configuration?.url}/login"
+                        call.respondRedirect(loginUrl)
                     }
-
-                    val fieldsForTemplate =
-                        obj.entries.map { (name, props) ->
-                            val inputType = props["html_input_type"] as String
-                            val originalType = props["original_type"] as? String ?: ""
-                            val isReadOnly =
-                                name.equals("id", ignoreCase = true) ||
-                                        name.equals("created", ignoreCase = true) ||
-                                        name.equals("modified", ignoreCase = true) ||
-                                        name.equals("password", ignoreCase = true)
-
-                            mapOf(
-                                "name" to name,
-                                "value" to props["value"],
-                                "html_input_type" to inputType,
-                                "original_type" to originalType,
-                                "is_checkbox" to (inputType == "checkbox"),
-                                "is_select" to (inputType == "select"),
-                                "is_textarea" to (inputType == "textarea"),
-                                "is_readonly" to isReadOnly,
-                                "is_general_input" to
-                                        !listOf("checkbox", "select", "textarea", "hidden")
-                                            .contains(inputType)
-                                // TODO: For "is_select", we need to add an "options" list
-                                // to this map
-                                // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
-                                // to "Option 1", "selected" to true/false))
-                            )
-                        }
-
-                    data["fields"] = fieldsForTemplate
-                    data["idValue"] = idValue.toString()
-                    data["object"] = obj
-                    call.respond(MustacheContent(template ?: defaultDetailsView, data))
                 }
             }
         }
@@ -546,17 +583,25 @@ open class BaseView<T : Any>(private val model: T) {
         application?.routing {
             route("/${configuration?.url}/${modelPath}/delete/{id}") {
                 get {
-                    val idValue =
-                        call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                    val instance = dao!!.delete(idValue, model::class)
-                    var instanceId: Int? = null
-                    if (instance is IntEntityClass<IntEntity>) {
-                        instanceId = instance.table.id.toString().toInt()
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
+
+                    if (sessionId != null) {
+                        val idValue =
+                            call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
+                        val instance = dao!!.delete(idValue, model::class)
+                        var instanceId: Int?
+                        if (instance is IntEntityClass<IntEntity>) {
+                            instanceId = instance.table.id.toString().toInt()
+                        } else {
+                            throw IllegalStateException("Deleted instance is not an IntEntity")
+                        }
+                        data["instanceId"] = instanceId
+                        call.respond(MustacheContent(template ?: "kt-panel-delete.hbs", data))
                     } else {
-                        throw IllegalStateException("Deleted instance is not an IntEntity")
+                        val loginUrl = "/${configuration?.url}/login"
+                        call.respondRedirect(loginUrl)
                     }
-                    data["instanceId"] = instanceId
-                    call.respond(MustacheContent(template ?: "kt-panel-delete.hbs", data))
                 }
             }
         }
@@ -595,9 +640,6 @@ class ModelView<T : Any>(val model: T) : BaseView<T>(model) {
         entityCompanions: List<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>? = null,
         entityManagerFactory: EntityManagerFactory? = null
     ) {
-        println("$entityManagerFactory entity manger")
-        println("$entityCompanions entity companions")
-        println("$configuration configration")
         super.configuration = configuration
         super.application = application
         super.database = database
