@@ -39,26 +39,26 @@ import kotlin.reflect.full.memberProperties
  */
 open class BaseView<T : Any>(private val model: T) {
     /**
-     * Configuration for the admin panel. This is set during [ModelView.renderPageViews] and
+     * Configuration for the admin panel. This is set during [ModelView.configurePageViews] and
      * contains settings like URL, endpoint, and admin name.
      */
     protected var configuration: Configuration? = null
 
     /**
-     * The application instance for setting up routes. Set during [ModelView.renderPageViews] and
+     * The application instance for setting up routes. Set during [ModelView.configurePageViews] and
      * used by the expose* methods.
      */
     protected var application: Application? = null
 
     /**
-     * The database instance for data access. This is set during [ModelView.renderPageViews] and
+     * The database instance for data access. This is set during [ModelView.configurePageViews] and
      * used by the ExposedDao for database operations.
      */
     protected var database: Database? = null
 
     /**
      * The data access object interface for database operations. This is set during
-     * [ModelView.renderPageViews] and used to interact with the database.
+     * [ModelView.configurePageViews] and used to interact with the database.
      */
     protected var dao: DatabaseAccessObjectInterface? = null
 
