@@ -60,7 +60,7 @@ class Admin(
      * Adds a single model view to the admin panel.
      *
      * This method registers a model view with the admin panel and immediately renders
-     * its associated pages by calling [ModelView.renderPageViews].
+     * its associated pages by calling [ModelView.configurePageViews].
      *
      * @param view ModelView instance to be added to the admin panel
      */
@@ -81,12 +81,12 @@ class Admin(
             this.entityCompanions.add(Pair(view.model::class as KClass<IntEntityClass<IntEntity>>, view.model))
         }
 
-        view.renderPageViews(
+        view.configurePageViews(
             database = this.database,
             application = this.application,
             configuration = this.configuration,
             tableNames = this.tableNames,
-            entityCompanions = if (view.model is IntEntityClass<IntEntity>) this.entityCompanions.toList() else null,
+            entityCompanions = if (view.model is IntEntityClass<IntEntity>) this.entityCompanions else null,
             entityManagerFactory = if (this.configuration.entityManagerFactory is EntityManagerFactory) this.configuration.entityManagerFactory else null
         )
     }
@@ -97,9 +97,9 @@ class Admin(
      * This method iteratively adds each view in the provided list by calling [addView]
      * for each element.
      *
-     * @param views List containing model views to be added to the admin panel
+     * @param views Array containing model views to be added to the admin panel
      */
-    fun addViews(views: List<ModelView<*>>) {
+    fun addViews(views: Array<ModelView<*>>) {
         for (view in views) {
             this.addView(view)
         }

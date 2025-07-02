@@ -632,12 +632,12 @@ class ModelView<T : Any>(val model: T) : BaseView<T>(model) {
      * @param entityCompanions Optional list of pairs containing entity classes for the models
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
-    fun renderPageViews(
+    fun configurePageViews(
         database: Database,
         application: Application,
         configuration: Configuration,
-        tableNames: List<String>,
-        entityCompanions: List<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>? = null,
+        tableNames: MutableList<String>,
+        entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>? = null,
         entityManagerFactory: EntityManagerFactory? = null
     ) {
         super.configuration = configuration
