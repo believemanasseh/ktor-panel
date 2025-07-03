@@ -24,7 +24,7 @@ class ExposedTest {
     fun testAdminInit() = testApplication {
         application {
             val configuration = Configuration(setAuthentication = false)
-            val admin = Admin(this, database, configuration)
+            val admin = Admin(this, configuration, database)
             admin.addView(ModelView(AdminUser))
             assertEquals(1, admin.countModelViews(), "Admin should have one model view registered")
         }

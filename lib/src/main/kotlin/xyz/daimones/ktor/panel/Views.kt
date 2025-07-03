@@ -625,30 +625,30 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
      * This method initialises the necessary properties and calls the individual expose methods to
      * set up routes for different admin panel views.
      *
-     * @param database The database connection to be used for data access
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
      * @param entityCompanions Optional list of pairs containing entity classes for the models
+     * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
     fun configurePageViews(
-        database: Database,
         application: Application,
         configuration: Configuration,
         tableNames: MutableList<String>,
-        entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>? = null,
-        entityManagerFactory: EntityManagerFactory? = null
+        entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>?,
+        database: Database?,
+        entityManagerFactory: EntityManagerFactory?
     ) {
         super.configuration = configuration
         super.application = application
         super.database = database
-        super.dao = if (entityCompanions != null) {
+        super.dao = if (database != null && entityCompanions != null) {
             ExposedDao(database, entityCompanions)
         } else if (entityManagerFactory != null) {
             JpaDao(entityManagerFactory)
         } else {
-            throw IllegalArgumentException("Either entityCompanions or entityManagerFactory must be provided")
+            throw IllegalArgumentException("Either database or entityManagerFactory must be provided")
         }
 
         if (configuration.setAuthentication) {

@@ -74,7 +74,7 @@ Basic Setup
        )
 
        // Initialise admin panel
-       val admin = Admin(this, database, config)
+       val admin = Admin(this, config, database)
 
        // Add your models to the admin panel
        admin.addView(ModelView(User))

@@ -16,13 +16,15 @@ import kotlin.reflect.KClass
  * admin panel configuration.
  *
  * @property application Ktor application instance used to set up routes and serve content
- * @property database Application database instance for data access and table information
  * @property configuration General admin configuration containing settings like URL paths and names
+ * @property database Optional application database instance for data access and table information
+ * @property entityManagerFactory Optional JPA EntityManagerFactory for database operations.
  */
 class Admin(
     private val application: Application,
-    private val database: Database,
-    private val configuration: Configuration
+    private val configuration: Configuration,
+    private val database: Database? = null,
+    private val entityManagerFactory: EntityManagerFactory? = null
 ) {
     /**
      * Collection of model views registered with this admin panel.
@@ -87,12 +89,12 @@ class Admin(
         }
 
         view.configurePageViews(
-            database = this.database,
             application = this.application,
             configuration = this.configuration,
             tableNames = this.tableNames,
-            entityCompanions = if (view.entityClass is IntEntityClass<IntEntity>) this.entityCompanions else null,
-            entityManagerFactory = if (this.configuration.entityManagerFactory is EntityManagerFactory) this.configuration.entityManagerFactory else null
+            entityCompanions = this.entityCompanions.ifEmpty { null },
+            database = this.database,
+            entityManagerFactory = this.entityManagerFactory
         )
     }
 

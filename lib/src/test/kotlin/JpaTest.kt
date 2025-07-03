@@ -2,7 +2,6 @@ import io.ktor.server.testing.*
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Persistence
 import org.h2.jdbcx.JdbcDataSource
-import org.jetbrains.exposed.sql.Database
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.ModelView
@@ -13,7 +12,6 @@ import kotlin.test.assertEquals
 
 class JpaTest {
     private lateinit var entityManagerFactory: EntityManagerFactory
-    private lateinit var database: Database
 
     @BeforeTest
     fun setup() {
@@ -26,14 +24,14 @@ class JpaTest {
             "jakarta.persistence.nonJtaDataSource" to dataSource
         )
         entityManagerFactory = Persistence.createEntityManagerFactory("ktor-panel-test", properties)
-        database = Database.connect(dataSource)
     }
 
     @Test
     fun testAdminInit() = testApplication {
         application {
-            val configuration = Configuration(setAuthentication = false, entityManagerFactory = entityManagerFactory)
-            val admin = Admin(this, database, configuration)
+            val configuration = Configuration(setAuthentication = false)
+            val admin =
+                Admin(application = this, configuration = configuration, entityManagerFactory = entityManagerFactory)
             admin.addView(ModelView(JpaAdminUser()))
             assertEquals(1, admin.countModelViews(), "Admin should have one model view registered")
         }
