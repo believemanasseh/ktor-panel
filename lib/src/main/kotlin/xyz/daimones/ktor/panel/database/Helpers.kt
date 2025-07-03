@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.vendors.currentDialect
 
 /**
- * Database helper functions for the Ktor Admin panel.
+ * Database helper functions for the Ktor Panel library.
  *
  * This file contains utility functions that interact with the database
  * to retrieve metadata and assist with admin panel operations.

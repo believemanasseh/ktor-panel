@@ -16,7 +16,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    fun <T : Any> findById(id: Int, kClass: KClass<T>): T?
+    suspend fun <T : Any> findById(id: Int, kClass: KClass<T>): T?
 
     /**
      * Finds all entities of a given type.
@@ -25,7 +25,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    fun <T : Any> findAll(kClass: KClass<T>): List<T?>
+    suspend fun <T : Any> findAll(kClass: KClass<T>): List<T?>
 
     /**
      * Finds an entity by its username.
@@ -35,7 +35,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    fun <T : Any> find(username: String, kClass: KClass<T>): T?
+    suspend fun <T : Any> find(username: String, kClass: KClass<T>): T?
 
     /**
      * Saves a new entity.
@@ -45,7 +45,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to save.
      * @return The saved entity of type T.
      */
-    fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T
+    suspend fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T
 
     /**
      * Saves a new entity.
@@ -54,7 +54,7 @@ interface DatabaseAccessObjectInterface {
      * @param entity The entity to save.
      * @return The saved entity.
      */
-    fun <T : Any> save(entity: T): T
+    suspend fun <T : Any> save(entity: T): T
 
     /**
      * Updates an existing entity.
@@ -64,7 +64,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to update.
      * @return The updated entity of type T.
      */
-    fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T
+    suspend fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T
 
     /**
      * Updates an existing entity.
@@ -73,7 +73,7 @@ interface DatabaseAccessObjectInterface {
      * @param entity The entity to update.
      * @return The updated entity.
      */
-    fun <T: Any> update(entity: T): T
+    suspend fun <T : Any> update(entity: T): T
 
     /**
      * Deletes an entity by its primary key.
@@ -82,7 +82,7 @@ interface DatabaseAccessObjectInterface {
      * @param kClass The KClass of the entity to delete.
      * @return The number of rows affected (should be 1 if successful).
      */
-    fun <T : Any> delete(id: Int, kClass: KClass<T>): T?
+    suspend fun <T : Any> delete(id: Int, kClass: KClass<T>): T?
 
     /**
      * Creates a table for the given entity class.
@@ -90,5 +90,5 @@ interface DatabaseAccessObjectInterface {
      * This is a generic method that can be used to create any table.
      * @param kClass The KClass of the entity for which to create the table.
      */
-    fun <T : Any> createTable(kClass: KClass<T>)
+    suspend fun <T : Any> createTable(kClass: KClass<T>)
 }

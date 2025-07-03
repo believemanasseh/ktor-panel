@@ -3,6 +3,8 @@ package xyz.daimones.ktor.panel.database.dao
 import jakarta.persistence.EntityManager
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Persistence
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import kotlin.reflect.KClass
 
@@ -62,9 +64,11 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
-        return execute { entityManager ->
+    override suspend fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
+        return withContext(Dispatchers.IO) {
+            execute { entityManager ->
             entityManager.find(kClass.java, id)
+            }
         }
     }
 
@@ -75,10 +79,12 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    override fun <T : Any> findAll(kClass: KClass<T>): List<T> {
-        return execute { entityManager ->
+    override suspend fun <T : Any> findAll(kClass: KClass<T>): List<T> {
+        return withContext(Dispatchers.IO) {
+            execute { entityManager ->
             val jpql = "SELECT e FROM ${kClass.simpleName} e"
             entityManager.createQuery(jpql, kClass.java).resultList
+            }
         }
     }
 
@@ -90,14 +96,16 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> find(username: String, kClass: KClass<T>): T? {
-        return execute { entityManager ->
+    override suspend fun <T : Any> find(username: String, kClass: KClass<T>): T? {
+        return withContext(Dispatchers.IO) {
+            execute { entityManager ->
             val jpql = "SELECT e FROM ${kClass.simpleName} e WHERE e.username = :username"
             entityManager
                 .createQuery(jpql, kClass.java)
                 .setParameter("username", username)
                 .resultList
                 .firstOrNull()
+            }
         }
     }
 
@@ -108,7 +116,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param entity The entity to save.
      * @return The saved entity.
      */
-    override fun <T : Any> save(entity: T): T {
+    override suspend fun <T : Any> save(entity: T): T {
         return executeInTransaction { entityManager -> entityManager.merge(entity) }
     }
 
@@ -121,7 +129,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @throws NotImplementedError Always throws this error as this operation is not supported
      * @see save(entity: T) Use this method instead with an entity instance
      */
-    override fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
+    override suspend fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
         throw NotImplementedError("JpaDao requires an entity instance. Use save(entity: T) instead")
     }
 
@@ -132,8 +140,8 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param entity The entity to update.
      * @return The updated entity.
      */
-    override fun <T : Any> update(entity: T): T {
-        return executeInTransaction { entityManager -> entityManager.merge(entity) }
+    override suspend fun <T : Any> update(entity: T): T {
+        return withContext(Dispatchers.IO) { executeInTransaction { entityManager -> entityManager.merge(entity) } }
     }
 
     /**
@@ -145,7 +153,7 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @throws NotImplementedError Always throws this error as this operation is not supported
      * @see update(entity: T) Use this method instead with an entity instance
      */
-    override fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
+    override suspend fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
         throw NotImplementedError(
             "JpaDao requires an entity instance. Use update(entity: T) instead"
         )
@@ -159,12 +167,14 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      * @param kClass The Kotlin class of the entity type
      * @return The deleted entity, or null if no entity was found with the given ID
      */
-    override fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
-        return executeInTransaction { entityManager ->
+    override suspend fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
+        return withContext(Dispatchers.IO) {
+            executeInTransaction { entityManager ->
             val entityToDelete = entityManager.find(kClass.java, id)
             entityToDelete?.let { entityManager.remove(it) }
             @Suppress("UNCHECKED_CAST")
             id as? T?
+            }
         }
     }
 
@@ -174,33 +184,35 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
      *
      * @param kClass The KClass of the entity for which to create the table.
      */
-    override fun <T : Any> createTable(kClass: KClass<T>) {
-        // Get the existing properties from the main factory.
-        // This includes the database URL, user, password, and dialect.
-        val existingProperties = entityManagerFactory.properties
+    override suspend fun <T : Any> createTable(kClass: KClass<T>) {
+        withContext(Dispatchers.IO) {
+            // Get the existing properties from the main factory.
+            // This includes the database URL, user, password, and dialect.
+            val existingProperties = entityManagerFactory.properties
 
-        val schemaGenProperties = HashMap<String, Any>(existingProperties)
+            val schemaGenProperties = HashMap<String, Any>(existingProperties)
 
-        // Set the schema generation strategy
-        schemaGenProperties["jakarta.persistence.schema-generation.database.action"] = "create"
+            // Set the schema generation strategy
+            schemaGenProperties["jakarta.persistence.schema-generation.database.action"] = "create"
 
-        // This tells the provider which classes to consider for table creation.
-        schemaGenProperties["jakarta.persistence.managed-class"] = kClass.java.name
+            // This tells the provider which classes to consider for table creation.
+            schemaGenProperties["jakarta.persistence.managed-class"] = kClass.java.name
 
-        // This is a common Hibernate property to prevent it from validating the rest of the schema.
-        // It helps isolate the creation to just what's needed.
-        schemaGenProperties["hibernate.hbm2ddl.auto"] = "create"
+            // This is a common Hibernate property to prevent it from validating the rest of the schema.
+            // It helps isolate the creation to just what's needed.
+            schemaGenProperties["hibernate.hbm2ddl.auto"] = "create"
 
-        val tempSchemaFactory: EntityManagerFactory? =
-            try {
-                Persistence.createEntityManagerFactory("schema-generator", schemaGenProperties)
-            } catch (e: Exception) {
-                println(
-                    "Schema generation for ${kClass.simpleName} may have been skipped: ${e.message}"
-                )
-                null
-            }
+            val tempSchemaFactory: EntityManagerFactory? =
+                try {
+                    Persistence.createEntityManagerFactory("schema-generator", schemaGenProperties)
+                } catch (e: Exception) {
+                    println(
+                        "Schema generation for ${kClass.simpleName} may have been skipped: ${e.message}"
+                    )
+                    null
+                }
 
-        tempSchemaFactory?.close()
+            tempSchemaFactory?.close()
+        }
     }
 }

@@ -1,5 +1,7 @@
 package xyz.daimones.ktor.panel.database.dao
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -89,11 +91,12 @@ class ExposedDao(
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
+    override suspend fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
         val companion = getEntityCompanion(kClass)
-
-        val result = transaction(this.database) {
+        val result = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) {
             companion.findById(id)
+            }
         }
         @Suppress("UNCHECKED_CAST")
         return result as? T?
@@ -105,10 +108,12 @@ class ExposedDao(
      * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    override fun <T : Any> findAll(kClass: KClass<T>): List<T?> {
+    override suspend fun <T : Any> findAll(kClass: KClass<T>): List<T?> {
         val companion = getEntityCompanion(kClass)
-        val result = transaction(this.database) {
-            companion.all().toList()
+        val result = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) {
+                companion.all().toList()
+            }
         }
         @Suppress("UNCHECKED_CAST")
         return result as? List<T?> ?: emptyList()
@@ -121,13 +126,15 @@ class ExposedDao(
      * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override fun <T : Any> find(
+    override suspend fun <T : Any> find(
             username: String,
             kClass: KClass<T>,
     ): T? {
         val companion = getEntityCompanion(kClass)
-        val result = transaction(this.database) {
-            companion.find { AdminUsers.username eq username }.firstOrNull()
+        val result = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) {
+                companion.find { AdminUsers.username eq username }.firstOrNull()
+            }
         }
         @Suppress("UNCHECKED_CAST")
         return result as? T?
@@ -142,14 +149,16 @@ class ExposedDao(
      * @return The updated entity.
      * @throws IllegalArgumentException if the entity with the given ID is not found.
      */
-    override fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
+    override suspend fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
         val companion = getEntityCompanion(kClass)
-        val updatedEntity = transaction(this.database) {
-            val id = data["id"].toString().toInt()
-            val entityToUpdate = companion.findById(id)
-                ?: throw IllegalArgumentException("Entity with id $id not found for update.")
-            copyProperties(data, entityToUpdate)
-            entityToUpdate
+        val updatedEntity = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) {
+                val id = data["id"].toString().toInt()
+                val entityToUpdate = companion.findById(id)
+                    ?: throw IllegalArgumentException("Entity with id $id not found for update.")
+                copyProperties(data, entityToUpdate)
+                entityToUpdate
+            }
         }
         @Suppress("UNCHECKED_CAST")
         return updatedEntity as T
@@ -162,7 +171,7 @@ class ExposedDao(
      * @return The updated entity.
      * @throws NotImplementedError if this method is called directly.
      */
-    override fun <T : Any> update(entity: T): T {
+    override suspend fun <T : Any> update(entity: T): T {
         throw NotImplementedError("ExposedDao requires a map and entity class. Use update(data: Map<String, Any>, kClass: KClass<T>) instead")
     }
 
@@ -173,10 +182,12 @@ class ExposedDao(
      * @param kClass The KClass of the entity to save.
      * @return The saved entity.
      */
-    override fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
+    override suspend fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
         val companion = getEntityCompanion(kClass)
-        val savedEntity = transaction(this.database) {
-            companion.new { copyProperties(data, this) }
+        val savedEntity = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) {
+                companion.new { copyProperties(data, this) }
+            }
         }
         @Suppress("UNCHECKED_CAST")
         return savedEntity as T
@@ -189,7 +200,7 @@ class ExposedDao(
      * @return The saved entity.
      * @throws NotImplementedError if this method is called directly.
      */
-    override fun <T: Any> save(entity: T): T {
+    override suspend fun <T : Any> save(entity: T): T {
         throw NotImplementedError("ExposedDao requires a map and entity class. Use save(data: Map<String, Any>, kClass: KClass<T>) instead.")
     }
 
@@ -200,9 +211,11 @@ class ExposedDao(
      * @param kClass The KClass of the entity to delete.
      * @return The deleted entity, or null if no entity was found with the given ID.
      */
-    override fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
+    override suspend fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
         val companion = getEntityCompanion(kClass)
-        val obj = transaction(this.database) { companion.findById(id) }
+        val obj = withContext(Dispatchers.IO) {
+            transaction(this@ExposedDao.database) { companion.findById(id) }
+        }
         @Suppress("UNCHECKED_CAST")
         return obj?.id as T?
     }
@@ -213,8 +226,8 @@ class ExposedDao(
      *
      * @param kClass The KClass of the entity for which to create the table.
      */
-    override fun <T : Any> createTable(kClass: KClass<T>) {
+    override suspend fun <T : Any> createTable(kClass: KClass<T>) {
         val companion = getEntityCompanion(kClass)
-        transaction(this.database) { SchemaUtils.create(companion.table) }
+        withContext(Dispatchers.IO) { transaction(this@ExposedDao.database) { SchemaUtils.create(companion.table) } }
     }
 }

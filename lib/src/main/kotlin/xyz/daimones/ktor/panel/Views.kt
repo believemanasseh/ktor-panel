@@ -8,6 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -195,7 +196,7 @@ open class BaseView<T : Any>(private val model: T) {
      *
      * @return A list of maps where each map represents a record with its ID and column values
      */
-    private fun getTableDataValues(): List<Map<String, Any?>?> {
+    private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
         val entities = dao!!.findAll(model::class)
         return entities.map { entity ->
             val rowData = mutableListOf<Any?>()
@@ -376,11 +377,6 @@ open class BaseView<T : Any>(private val model: T) {
     ) {
         application?.routing {
             route("/${configuration?.url}/${modelPath}/new") {
-                val tableDataValues = getTableDataValues()
-                val tablesData =
-                    mapOf("headers" to headers, "data" to mapOf("values" to tableDataValues))
-                data["tablesData"] = tablesData
-
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -413,6 +409,10 @@ open class BaseView<T : Any>(private val model: T) {
                                 )
                             }
                         data["fields"] = fieldsForTemplate
+                        val tableDataValues = getTableDataValues()
+                        val tablesData =
+                            mapOf("headers" to headers, "data" to mapOf("values" to tableDataValues))
+                        data["tablesData"] = tablesData
                         call.respond(MustacheContent(template ?: defaultCreateView, data))
                     } else {
                         val loginUrl = "/${configuration?.url}/login"
@@ -590,7 +590,7 @@ open class BaseView<T : Any>(private val model: T) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
                         val instance = dao!!.delete(idValue, model::class)
-                        var instanceId: Int?
+                        val instanceId: Int?
                         if (instance is IntEntityClass<IntEntity>) {
                             instanceId = instance.table.id.toString().toInt()
                         } else {
@@ -652,23 +652,25 @@ class ModelView<T : Any>(val model: T) : BaseView<T>(model) {
         }
 
         if (configuration.setAuthentication) {
-            // Create the AdminUsers table if it doesn't exist
-            this.dao!!.createTable(AdminUser::class)
+            runBlocking {
+                // Create the AdminUsers table if it doesn't exist
+                this@ModelView.dao!!.createTable(AdminUser::class)
 
-            // Check if the admin user already exists
-            val existingAdminUser: AdminUser? = this.dao!!.find(
-                configuration.adminUsername,
-                AdminUser::class
-            )
-            if (existingAdminUser == null) {
-                // Create the admin user with hashed password
-                val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
-                val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
-                dao!!.save(entity, AdminUser::class)
+                // Check if the admin user already exists
+                val existingAdminUser: AdminUser? = this@ModelView.dao!!.find(
+                    configuration.adminUsername,
+                    AdminUser::class
+                )
+                if (existingAdminUser == null) {
+                    // Create the admin user with hashed password
+                    val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
+                    val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
+                    this@ModelView.dao!!.save(entity, AdminUser::class)
+                }
+
+                // Expose the authentication view
+                this@ModelView.exposeLoginView(mutableMapOf("configuration" to configuration))
             }
-
-            // Expose the authentication view
-            this.exposeLoginView(mutableMapOf("configuration" to configuration))
         }
 
         this.exposeIndexView(
