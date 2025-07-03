@@ -65,20 +65,25 @@ class Admin(
      * @param view ModelView instance to be added to the admin panel
      */
     fun addView(view: ModelView<*>) {
-        val tableName = if (view.model is IntEntityClass<IntEntity>) {
-            view.model.table.tableName
-        } else if (view.model::class.annotations.any { it is Entity }) {
-            view.model::class.simpleName.toString()
+        val tableName = if (view.entityClass is IntEntityClass<IntEntity>) {
+            view.entityClass.table.tableName
+        } else if (view.entityClass::class.annotations.any { it is Entity }) {
+            view.entityClass::class.simpleName.toString()
         } else {
             throw IllegalArgumentException("Model must be an IntEntity or annotated with @Entity")
         }
         this.tableNames.add(tableName)
         this.modelViews.add(view)
 
-        if (view.model is IntEntityClass<IntEntity>) {
+        if (view.entityClass is IntEntityClass<IntEntity>) {
             // If the model is an IntEntityClass, we can safely add it to the entity class pairs.
             @Suppress("UNCHECKED_CAST")
-            this.entityCompanions.add(Pair(view.model::class as KClass<IntEntityClass<IntEntity>>, view.model))
+            this.entityCompanions.add(
+                Pair(
+                    view.entityClass::class as KClass<IntEntityClass<IntEntity>>,
+                    view.entityClass
+                )
+            )
         }
 
         view.configurePageViews(
@@ -86,7 +91,7 @@ class Admin(
             application = this.application,
             configuration = this.configuration,
             tableNames = this.tableNames,
-            entityCompanions = if (view.model is IntEntityClass<IntEntity>) this.entityCompanions else null,
+            entityCompanions = if (view.entityClass is IntEntityClass<IntEntity>) this.entityCompanions else null,
             entityManagerFactory = if (this.configuration.entityManagerFactory is EntityManagerFactory) this.configuration.entityManagerFactory else null
         )
     }

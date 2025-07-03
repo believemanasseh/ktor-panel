@@ -36,9 +36,9 @@ import kotlin.reflect.full.memberProperties
  * This class is responsible for setting up routes and rendering templates for the admin panel. It
  * provides functionality for index, list, create, details, and update views.
  *
- * @property model The database table model to generate admin views for
+ * @property entityClass The database entity class to generate admin views for
  */
-open class BaseView<T : Any>(private val model: T) {
+open class BaseView<T : Any>(private val entityClass: T) {
     /**
      * Configuration for the admin panel. This is set during [ModelView.configurePageViews] and
      * contains settings like URL, endpoint, and admin name.
@@ -102,12 +102,12 @@ open class BaseView<T : Any>(private val model: T) {
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
     private fun setHeaders(): List<String> {
-        println("${model::class.java.name} what")
-        return if (model is IntEntityClass<IntEntity>) {
-            model.table.columns.map { it.name }
-        } else if (model::class.annotations.any { it is Entity }) {
+        println("${entityClass::class.java.name} what")
+        return if (entityClass is IntEntityClass<IntEntity>) {
+            entityClass.table.columns.map { it.name }
+        } else if (entityClass::class.annotations.any { it is Entity }) {
             @Suppress("UNCHECKED_CAST")
-            model::class.memberProperties.toList() as List<String>
+            entityClass::class.memberProperties.toList() as List<String>
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -123,9 +123,9 @@ open class BaseView<T : Any>(private val model: T) {
      * @return A list of maps containing column names, HTML input types, and original types
      * @throws IllegalArgumentException if the model is not an IntEntity or does not have the @Entity annotation
      */
-    private fun <T : Any> getColumnTypes(model: T): List<Map<String, String>> {
-        return if (model is IntEntityClass<IntEntity>) {
-            model.table.columns.map { column ->
+    private fun <T : Any> getColumnTypes(entityClass: T): List<Map<String, String>> {
+        return if (entityClass is IntEntityClass<IntEntity>) {
+            entityClass.table.columns.map { column ->
                 val htmlInputType = getHtmlInputType(column)
                 mapOf(
                     "name" to column.name,
@@ -133,8 +133,8 @@ open class BaseView<T : Any>(private val model: T) {
                     "original_type" to column.columnType::class.simpleName.orEmpty()
                 )
             }
-        } else if (model::class.annotations.any { it is Entity }) {
-            model::class.memberProperties.map { property ->
+        } else if (entityClass::class.annotations.any { it is Entity }) {
+            entityClass::class.memberProperties.map { property ->
                 val columnName = property.name
                 val htmlInputType = getHtmlInputType(property.returnType)
                 mapOf(
@@ -197,12 +197,12 @@ open class BaseView<T : Any>(private val model: T) {
      * @return A list of maps where each map represents a record with its ID and column values
      */
     private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
-        val entities = dao!!.findAll(model::class)
+        val entities = dao!!.findAll(entityClass::class)
         return entities.map { entity ->
             val rowData = mutableListOf<Any?>()
-            if (model is IntEntityClass<IntEntity>) {
+            if (entityClass is IntEntityClass<IntEntity>) {
                 var actualValue: Any?
-                model.table.columns.forEach { column ->
+                entityClass.table.columns.forEach { column ->
                     // Find the corresponding property on the entity object using reflection.
                     val property = entity!!::class.memberProperties.find { it.name == column.name }
                     if (property != null) {
@@ -219,8 +219,8 @@ open class BaseView<T : Any>(private val model: T) {
                     }
                     rowData.add(actualValue)
                 }
-            } else if (model::class.annotations.any { it is Entity }) {
-                model::class.memberProperties.forEach { property ->
+            } else if (entityClass::class.annotations.any { it is Entity }) {
+                entityClass::class.memberProperties.forEach { property ->
                     val value = property.call(entity)
                     rowData.add(value ?: "null")
                 }
@@ -382,7 +382,7 @@ open class BaseView<T : Any>(private val model: T) {
                     val sessionId = cookies["session_id"]
 
                     if (sessionId != null) {
-                        val columnTypes = getColumnTypes(model)
+                        val columnTypes = getColumnTypes(entityClass)
                         val fieldsForTemplate =
                             columnTypes.map { props ->
                                 val inputType = props["html_input_type"] as String
@@ -424,8 +424,8 @@ open class BaseView<T : Any>(private val model: T) {
                     val params = call.receiveParameters()
                     val dataToSave = mutableMapOf<String, Any>()
                     var id: Int? = null
-                    if (model is IntEntityClass<IntEntity>) {
-                        model.table.columns.forEach { column ->
+                    if (entityClass is IntEntityClass<IntEntity>) {
+                        entityClass.table.columns.forEach { column ->
                             val columnName = column.name
 
                             if (columnName.equals("id", ignoreCase = true)) {
@@ -448,7 +448,7 @@ open class BaseView<T : Any>(private val model: T) {
                                 dataToSave[columnName] = value
                             }
                         }
-                        val instance = dao!!.save(dataToSave as Map<String, Any>, model::class)
+                        val instance = dao!!.save(dataToSave as Map<String, Any>, entityClass::class)
                         if (instance is IntEntity) {
                             id = instance.id.value
                         } else {
@@ -486,9 +486,9 @@ open class BaseView<T : Any>(private val model: T) {
                     if (sessionId != null) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                        val entity = dao!!.findById(idValue, model::class)
-                        val obj = if (model is IntEntityClass<IntEntity>) {
-                            model.table.columns.associate { column ->
+                        val entity = dao!!.findById(idValue, entityClass::class)
+                        val obj = if (entityClass is IntEntityClass<IntEntity>) {
+                            entityClass.table.columns.associate { column ->
                                 val property = entity!!::class.memberProperties.find { it.name == column.name }
                                 val actualValue: Any?
                                 if (property != null) {
@@ -509,7 +509,7 @@ open class BaseView<T : Any>(private val model: T) {
                                         )
                             }
                         } else {
-                            model::class.memberProperties.associate { property ->
+                            entityClass::class.memberProperties.associate { property ->
                                 val columnName = property.name
                                 val value = property.call(entity)
                                 val htmlInputType = getHtmlInputType(property.returnType)
@@ -589,7 +589,7 @@ open class BaseView<T : Any>(private val model: T) {
                     if (sessionId != null) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                        val instance = dao!!.delete(idValue, model::class)
+                        val instance = dao!!.delete(idValue, entityClass::class)
                         val instanceId: Int?
                         if (instance is IntEntityClass<IntEntity>) {
                             instanceId = instance.table.id.toString().toInt()
@@ -615,10 +615,10 @@ open class BaseView<T : Any>(private val model: T) {
  * functionality for database models. It inherits all the capabilities of BaseView including route
  * setup and template rendering for CRUD operations.
  *
- * This class can be extended to customise admin behavior for specific models, or used directly for
+ * This class can be extended to customise admin behavior for specific entity classes, or used directly for
  * standard database administration needs.
  */
-class ModelView<T : Any>(val model: T) : BaseView<T>(model) {
+class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
     /**
      * Sets up all the admin panel views and routes.
      *
@@ -680,20 +680,21 @@ class ModelView<T : Any>(val model: T) : BaseView<T>(model) {
             )
         )
 
-        // Determine the model name and path based on the type of model provided
-        val model = if (this.model is IntEntityClass<IntEntity>) {
-            model.table.tableName
-        } else if (this.model::class.annotations.any { it is Entity }) {
-            this.model::class.simpleName ?: throw IllegalArgumentException("Model must have a simple name")
+        // Determine the model name based on the type of entity class provided
+        val model = if (this.entityClass is IntEntityClass<IntEntity>) {
+            this.entityClass.table.tableName
+        } else if (this.entityClass::class.annotations.any { it is Entity }) {
+            this.entityClass::class.simpleName ?: throw IllegalArgumentException("Model must have a simple name")
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
 
         // Use the model name to determine the path for delete, list, create, and details views
-        val modelPath = if (this.model is IntEntityClass<IntEntity>) {
-            this.model.table.tableName.lowercase()
-        } else if (this.model::class.annotations.any { it is Entity }) {
-            this.model::class.simpleName?.lowercase() ?: throw IllegalArgumentException("Model must have a simple name")
+        val modelPath = if (this.entityClass is IntEntityClass<IntEntity>) {
+            this.entityClass.table.tableName.lowercase()
+        } else if (this.entityClass::class.annotations.any { it is Entity }) {
+            this.entityClass::class.simpleName?.lowercase()
+                ?: throw IllegalArgumentException("Model must have a simple name")
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
