@@ -1,11 +1,14 @@
 package xyz.daimones.ktor.panel
 
+import com.github.mustachejava.DefaultMustacheFactory
 import io.ktor.server.application.*
+import io.ktor.server.mustache.*
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
+import java.io.Reader
 import kotlin.reflect.KClass
 
 /**
@@ -45,6 +48,26 @@ class Admin(
      */
     private val entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>> =
         mutableListOf()
+
+    /**
+     * Initialises the admin panel by checking if the Mustache plugin is installed.
+     * If not, it installs the Mustache plugin with a custom factory that supports multiple template roots.
+     *
+     * This setup allows the admin panel to render views using Mustache templates located in specified directories.
+     */
+    init {
+        if (application.pluginOrNull(Mustache) == null) {
+            // If Mustache plugin is not installed, install it with a custom factory
+            application.install(Mustache) {
+                mustacheFactory = MultiRootMustacheFactory(
+                    listOf(
+                        "panel_templates",
+                        "templates"
+                    )
+                )
+            }
+        }
+    }
 
     /**
      * Returns the number of model views registered with this admin panel.
@@ -110,6 +133,26 @@ class Admin(
         for (view in views) {
             this.addView(view)
         }
+    }
+}
+
+/**
+ * Custom Mustache factory that allows loading templates from multiple root directories.
+ *
+ * This factory extends the DefaultMustacheFactory to support multiple template roots,
+ * enabling the application to search for templates in several locations.
+ *
+ * @property roots List of root directories where templates can be found
+ */
+class MultiRootMustacheFactory(private val roots: List<String>) : DefaultMustacheFactory() {
+    override fun getReader(resourceName: String): Reader {
+        for (root in roots) {
+            val stream = this.javaClass.classLoader.getResourceAsStream("$root/$resourceName")
+            if (stream != null) {
+                return stream.reader()
+            }
+        }
+        throw java.io.FileNotFoundException("Template $resourceName not found in $roots")
     }
 }
 

@@ -6,6 +6,7 @@ import jakarta.persistence.Persistence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 import kotlin.reflect.KClass
 
 /**
@@ -99,12 +100,13 @@ class JpaDao(private val entityManagerFactory: EntityManagerFactory) :
     override suspend fun <T : Any> find(username: String, kClass: KClass<T>): T? {
         return withContext(Dispatchers.IO) {
             execute { entityManager ->
-            val jpql = "SELECT e FROM ${kClass.simpleName} e WHERE e.username = :username"
-            entityManager
-                .createQuery(jpql, kClass.java)
-                .setParameter("username", username)
-                .resultList
-                .firstOrNull()
+                val jpql = "SELECT e FROM ${JpaAdminUser::class.simpleName} e WHERE e.username = :username"
+                @Suppress("UNCHECKED_CAST")
+                entityManager
+                    .createQuery(jpql, JpaAdminUser::class.java)
+                    .setParameter("username", username)
+                    .resultList
+                    .firstOrNull() as? T?
             }
         }
     }

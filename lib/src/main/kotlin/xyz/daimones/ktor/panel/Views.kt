@@ -23,6 +23,7 @@ import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
 import xyz.daimones.ktor.panel.database.entities.AdminUser
+import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.collections.set
@@ -63,6 +64,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
      */
     protected var dao: DatabaseAccessObjectInterface? = null
 
+    /** ORM type used for the entity class. */
+    protected var ormType: String? = null
+
     /** Default Mustache template for the index page. */
     private val defaultIndexView = "kt-panel-index.hbs"
 
@@ -102,12 +106,10 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
     private fun setHeaders(): List<String> {
-        println("${entityClass::class.java.name} what")
         return if (entityClass is IntEntityClass<IntEntity>) {
             entityClass.table.columns.map { it.name }
         } else if (entityClass::class.annotations.any { it is Entity }) {
-            @Suppress("UNCHECKED_CAST")
-            entityClass::class.memberProperties.toList() as List<String>
+            entityClass::class.memberProperties.map { it.name }
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -119,7 +121,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * This method maps each column in the model to its HTML input type and original type, which is
      * useful for generating forms and input fields dynamically.
      *
-     * @param model The IntIdTable model whose columns are to be inspected
+     * @param entityClass The entity class for which to retrieve column types
      * @return A list of maps containing column names, HTML input types, and original types
      * @throws IllegalArgumentException if the model is not an IntEntity or does not have the @Entity annotation
      */
@@ -200,9 +202,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
         val entities = dao!!.findAll(entityClass::class)
         return entities.map { entity ->
             val rowData = mutableListOf<Any?>()
-            if (entityClass is IntEntityClass<IntEntity>) {
+            if (ormType == "Exposed") {
                 var actualValue: Any?
-                entityClass.table.columns.forEach { column ->
+                (entityClass as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                     // Find the corresponding property on the entity object using reflection.
                     val property = entity!!::class.memberProperties.find { it.name == column.name }
                     if (property != null) {
@@ -230,6 +232,39 @@ open class BaseView<T : Any>(private val entityClass: T) {
     }
 
     /**
+     * Validates the session cookie and responds with the appropriate view.
+     *
+     * This method checks if the session cookie exists. If it does, it renders the index view with
+     * the provided data. If not, it redirects to the login page or renders the login view based on
+     * the endpoint.
+     *
+     * @param call The routing call to respond to
+     * @param cookies The request cookies to check for session ID
+     * @param template Optional custom template name, if null the default template is used
+     * @param data Map of data to be passed to the template
+     * @param endpoint The endpoint being accessed (default is "login")
+     */
+    private suspend fun validateCookie(
+        call: RoutingCall,
+        cookies: RequestCookies,
+        template: String? = null,
+        data: Map<String, Any>,
+        endpoint: String = "login"
+    ) {
+        val sessionId = cookies["session_id"]
+        if (sessionId != null) {
+            call.respond(MustacheContent(template ?: defaultIndexView, data))
+        } else {
+            val loginUrl = "/${configuration?.url}/login"
+            if (endpoint == "login") {
+                call.respond(MustacheContent(template ?: defaultLoginView, data))
+            } else {
+                call.respondRedirect(loginUrl)
+            }
+        }
+    }
+
+    /**
      * Sets up the route for the login view.
      *
      * This method creates a GET and POST route for the admin panel's login page, rendering the
@@ -243,14 +278,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
             route("/${configuration?.url}/login") {
                 get {
                     val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-
-                    if (sessionId != null) {
-                        call.respond(MustacheContent(template ?: defaultLoginView, data))
-                    } else {
-                        val loginUrl = "/${configuration?.url}/login"
-                        call.respondRedirect(loginUrl)
-                    }
+                    validateCookie(call, cookies, template, data)
                 }
 
                 post {
@@ -258,28 +286,43 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     val username = params["username"]
                     val password = params["password"]
 
-                    val user = dao!!.find(username.toString(), AdminUser::class)
-
-                    if (user != null && BCrypt.checkpw(password.toString(), user.password)) {
-                        val sessionId = UUID.randomUUID().toString()
-                        call.response.cookies.append(
-                            Cookie(
-                                name = "session_id",
-                                value = sessionId,
-                                httpOnly = true,
-                                path = "/",
-                                maxAge = 60 * 60 * 24 * 30, // 30 days
-                                secure = false
+                    suspend fun validateUser(user: Any?, password: String?, hashedPassword: String?) {
+                        if (user != null && BCrypt.checkpw(password.toString(), hashedPassword)) {
+                            val sessionId = UUID.randomUUID().toString()
+                            call.response.cookies.append(
+                                Cookie(
+                                    name = "session_id",
+                                    value = sessionId,
+                                    httpOnly = true,
+                                    path = "/",
+                                    maxAge = 60 * 60 * 24 * 30, // 30 days
+                                    secure = false
+                                )
                             )
-                        )
 
-                        val endpoint =
-                            if (configuration?.endpoint === "/") ""
-                            else "/${configuration?.endpoint}"
-                        call.respondRedirect("/${configuration?.url}${endpoint}")
-                    } else {
-                        data["errorMessage"] = "Invalid username or password"
-                        call.respond(MustacheContent(template ?: defaultLoginView, data))
+                            val endpoint =
+                                if (configuration?.endpoint === "/") ""
+                                else "/${configuration?.endpoint}"
+                            call.respondRedirect("/${configuration?.url}${endpoint}")
+                        } else {
+                            data["errorMessage"] = "Invalid username or password"
+                            call.respond(MustacheContent(template ?: defaultLoginView, data))
+                        }
+                    }
+
+                    val user: Any?
+                    when (ormType) {
+                        "Exposed" -> {
+                            user = dao!!.find(username.toString(), AdminUser::class)
+                            validateUser(user, password, user?.password)
+                        }
+
+                        "JPA" -> {
+                            user = dao!!.find(username.toString(), JpaAdminUser::class)
+                            validateUser(user, password, user?.password)
+                        }
+
+                        else -> throw IllegalStateException("Unsupported ORM type: $ormType")
                     }
                 }
             }
@@ -302,13 +345,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
             route("/${configuration?.url}${endpoint}") {
                 get {
                     val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-                    if (sessionId != null) {
-                        call.respond(MustacheContent(template ?: defaultIndexView, data))
-                    } else {
-                        val loginUrl = "/${configuration?.url}/login"
-                        call.respondRedirect(loginUrl)
-                    }
+                    validateCookie(call, cookies, template, data, "index")
                 }
             }
         }
@@ -424,8 +461,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     val params = call.receiveParameters()
                     val dataToSave = mutableMapOf<String, Any>()
                     var id: Int? = null
-                    if (entityClass is IntEntityClass<IntEntity>) {
-                        entityClass.table.columns.forEach { column ->
+                    if (ormType == "Exposed") {
+                        (entityClass as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                             val columnName = column.name
 
                             if (columnName.equals("id", ignoreCase = true)) {
@@ -449,8 +486,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
                             }
                         }
                         val instance = dao!!.save(dataToSave as Map<String, Any>, entityClass::class)
-                        if (instance is IntEntity) {
-                            id = instance.id.value
+                        id = if (instance is IntEntity) {
+                            instance.id.value
                         } else {
                             throw IllegalStateException("Saved instance is not an IntEntity")
                         }
@@ -487,8 +524,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
                         val entity = dao!!.findById(idValue, entityClass::class)
-                        val obj = if (entityClass is IntEntityClass<IntEntity>) {
-                            entityClass.table.columns.associate { column ->
+                        val obj = if (ormType == "Exposed") {
+                            (entityClass as IntEntityClass<IntEntity>).table.columns.associate { column ->
                                 val property = entity!!::class.memberProperties.find { it.name == column.name }
                                 val actualValue: Any?
                                 if (property != null) {
@@ -644,8 +681,10 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
         super.application = application
         super.database = database
         super.dao = if (database != null && entityCompanions != null) {
+            super.ormType = "Exposed"
             ExposedDao(database, entityCompanions)
         } else if (entityManagerFactory != null) {
+            super.ormType = "JPA"
             JpaDao(entityManagerFactory)
         } else {
             throw IllegalArgumentException("Either database or entityManagerFactory must be provided")
@@ -657,15 +696,24 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
                 this@ModelView.dao!!.createTable(AdminUser::class)
 
                 // Check if the admin user already exists
-                val existingAdminUser: AdminUser? = this@ModelView.dao!!.find(
-                    configuration.adminUsername,
-                    AdminUser::class
-                )
-                if (existingAdminUser == null) {
-                    // Create the admin user with hashed password
-                    val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
-                    val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
-                    this@ModelView.dao!!.save(entity, AdminUser::class)
+                // and create it if it doesn't
+                val existingAdminUser: Any?
+                val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
+                if (database != null && entityCompanions != null) {
+                    existingAdminUser = this@ModelView.dao!!.find(
+                        configuration.adminUsername,
+                        AdminUser::class
+                    )
+                    if (existingAdminUser == null) {
+                        val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
+                        this@ModelView.dao!!.save(entity, AdminUser::class)
+                    }
+                } else {
+                    existingAdminUser = this@ModelView.dao!!.find(configuration.adminUsername, JpaAdminUser::class)
+                    if (existingAdminUser == null) {
+                        val entity = JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
+                        this@ModelView.dao!!.save(entity)
+                    }
                 }
 
                 // Expose the authentication view
