@@ -10,11 +10,10 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    configureSerialization()
     configureRouting()
-    val database = configureDatabases()
+    val entityManagerFactory = configureDatabases()
     // Configure and initialise admin interface library
     val configuration = Configuration(setAuthentication = true)
-    val admin = Admin(this, configuration, database)
-    admin.addView(ModelView(User))
+    val admin = Admin(this, configuration, entityManagerFactory = entityManagerFactory)
+    admin.addView(ModelView(User()))
 }

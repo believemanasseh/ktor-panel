@@ -1,6 +1,8 @@
 plugins {
     id("jacoco")
     alias(libs.plugins.jvm)
+    alias(libs.plugins.ktor) apply false
+    alias(libs.plugins.kotlin.plugin.serialization) apply false
     `java-library`
     `maven-publish`
 }

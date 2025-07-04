@@ -27,6 +27,10 @@ exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "e
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor-server" }
 ktor-server-mustache = { module = "io.ktor:ktor-server-mustache", version.ref = "ktor-server" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor-server" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor-server" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor-server" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor-server" }
+ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml", version.ref = "ktor-server" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
 jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
@@ -36,3 +40,5 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor-server" }
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

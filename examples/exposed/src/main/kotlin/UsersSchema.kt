@@ -1,62 +1,32 @@
 package com.example
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.javatime.datetime
+import java.time.LocalDateTime
 
-@Serializable
-data class ExposedUser(val name: String, val age: Int)
 
-class UserService(database: Database) {
-    object Users : Table() {
-        val id = integer("id").autoIncrement()
-        val name = varchar("name", length = 50)
-        val age = integer("age")
-
-        override val primaryKey = PrimaryKey(id)
-    }
-
-    init {
-        transaction(database) {
-            SchemaUtils.create(Users)
-        }
-    }
-
-    suspend fun create(user: ExposedUser): Int = dbQuery {
-        Users.insert {
-            it[name] = user.name
-            it[age] = user.age
-        }[Users.id]
-    }
-
-    suspend fun read(id: Int): ExposedUser? {
-        return dbQuery {
-            Users.selectAll()
-                .where { Users.id eq id }
-                .map { ExposedUser(it[Users.name], it[Users.age]) }
-                .singleOrNull()
-        }
-    }
-
-    suspend fun update(id: Int, user: ExposedUser) {
-        dbQuery {
-            Users.update({ Users.id eq id }) {
-                it[name] = user.name
-                it[age] = user.age
-            }
-        }
-    }
-
-    suspend fun delete(id: Int) {
-        dbQuery {
-            Users.deleteWhere { Users.id.eq(id) }
-        }
-    }
-
-    private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+object Users : IntIdTable() {
+    val email: Column<String> = varchar("name", length = 50).uniqueIndex()
+    val firstName: Column<String> = varchar("first_name", length = 255)
+    val lastName: Column<String> = varchar("last_name", length = 255)
+    val password: Column<String> = varchar("password", length = 100)
+    val isActive: Column<Boolean> = bool("is_active").default(false)
+    val created: Column<LocalDateTime> = datetime("created").default(LocalDateTime.now())
+    val modified: Column<LocalDateTime> = datetime("modified").default(LocalDateTime.now())
 }
 
+class User(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<User>(Users)
+
+    var email by Users.email
+    var firstName by Users.firstName
+    var lastName by Users.lastName
+    var password by Users.password
+    var isActive by Users.isActive
+    var created by Users.created
+    var modified by Users.modified
+}
