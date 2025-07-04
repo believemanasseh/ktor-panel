@@ -1,7 +1,6 @@
 import io.ktor.server.testing.*
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Persistence
-import org.h2.jdbcx.JdbcDataSource
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.ModelView
@@ -15,15 +14,7 @@ class JpaTest {
 
     @BeforeTest
     fun setup() {
-        val dataSource = JdbcDataSource().apply {
-            setURL("jdbc:h2:mem:jpa_test;DB_CLOSE_DELAY=-1")
-            user = "sa"
-            password = ""
-        }
-        val properties = mapOf(
-            "jakarta.persistence.nonJtaDataSource" to dataSource
-        )
-        entityManagerFactory = Persistence.createEntityManagerFactory("ktor-panel-test", properties)
+        entityManagerFactory = Persistence.createEntityManagerFactory("ktor-panel-test")
     }
 
     @Test
