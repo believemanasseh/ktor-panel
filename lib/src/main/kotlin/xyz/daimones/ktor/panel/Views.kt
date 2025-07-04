@@ -45,26 +45,26 @@ import org.jetbrains.exposed.sql.Column as ExposedColumn
  */
 open class BaseView<T : Any>(private val entityClass: T) {
     /**
-     * Configuration for the admin panel. This is set during [ModelView.configurePageViews] and
+     * Configuration for the admin panel. This is set during [EntityView.configurePageViews] and
      * contains settings like URL, endpoint, and admin name.
      */
     protected var configuration: Configuration? = null
 
     /**
-     * The application instance for setting up routes. Set during [ModelView.configurePageViews] and
+     * The application instance for setting up routes. Set during [EntityView.configurePageViews] and
      * used by the expose* methods.
      */
     protected var application: Application? = null
 
     /**
-     * The database instance for data access. This is set during [ModelView.configurePageViews] and
+     * The database instance for data access. This is set during [EntityView.configurePageViews] and
      * used by the ExposedDao for database operations.
      */
     protected var database: Database? = null
 
     /**
      * The data access object interface for database operations. This is set during
-     * [ModelView.configurePageViews] and used to interact with the database.
+     * [EntityView.configurePageViews] and used to interact with the database.
      */
     protected var dao: DatabaseAccessObjectInterface? = null
 
@@ -87,7 +87,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
     private val defaultLoginView = "kt-panel-login.hbs"
 
     /**
-     * List of headers for the model's columns. This is used to render table headers in the list
+     * List of headers for the entity's columns. This is used to render table headers in the list
      * view.
      */
     private var headers: List<String>
@@ -99,14 +99,14 @@ open class BaseView<T : Any>(private val entityClass: T) {
     private var successMessage: String? = null
 
     init {
-        // Initialise headers based on the model type
+        // Initialise headers based on the entity type
         this.headers = setHeaders()
     }
 
     /**
-     * Initialises the headers for the model's columns.
+     * Initialises the headers for the entity's columns.
      *
-     * This method sets up the headers based on the model type, either from Exposed IntIdTable or
+     * This method sets up the headers based on the entity type, either from Exposed IntIdTable or
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
     private fun setHeaders(): List<String> {
@@ -166,14 +166,14 @@ open class BaseView<T : Any>(private val entityClass: T) {
     }
 
     /**
-     * Retrieves the column types of the model for rendering in templates.
+     * Retrieves the column types of the entity for rendering in templates.
      *
-     * This method maps each column in the model to its HTML input type and original type, which is
+     * This method maps each column in the entity to its HTML input type and original type, which is
      * useful for generating forms and input fields dynamically.
      *
      * @param entityClass The entity class for which to retrieve column types
      * @return A list of maps containing column names, HTML input types, and original types
-     * @throws IllegalArgumentException if the model is not an IntEntity or does not have the @Entity annotation
+     * @throws IllegalArgumentException if the entity is not an IntEntity or does not have the @Entity annotation
      */
     private fun <T : Any> getColumnTypes(entityClass: T): List<Map<String, String>> {
         return if (entityClass is IntEntityClass<IntEntity>) {
@@ -241,9 +241,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
     }
 
     /**
-     * Retrieves all table data values for the model.
+     * Retrieves all table data values for the entity.
      *
-     * This method queries the database for all records in the specified model and returns a list of
+     * This method queries the database for all records in the specified entity and returns a list of
      * maps containing the ID and column values for each record.
      *
      * @return A list of maps where each map represents a record with its ID and column values
@@ -409,15 +409,15 @@ open class BaseView<T : Any>(private val entityClass: T) {
      *
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
-     * @param modelPath The path to the model being listed, used in the URL
+     * @param entityPath The path to the entity being listed, used in the URL
      */
     protected fun exposeListView(
         data: MutableMap<String, Any>,
         template: String? = null,
-        modelPath: String
+        entityPath: String
     ) {
         application?.routing {
-            route("/${configuration?.url}/${modelPath}/list") {
+            route("/${configuration?.url}/${entityPath}/list") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -455,15 +455,15 @@ open class BaseView<T : Any>(private val entityClass: T) {
      *
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
-     * @param modelPath The path to the model being created, used in the URL
+     * @param entityPath The path to the entity being created, used in the URL
      */
     protected fun exposeCreateView(
         data: MutableMap<String, Any?>,
         template: String? = null,
-        modelPath: String
+        entityPath: String
     ) {
         application?.routing {
-            route("/${configuration?.url}/${modelPath}/new") {
+            route("/${configuration?.url}/${entityPath}/new") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -543,7 +543,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                         }
                     }
                     successMessage = "Instance created successfully with ID: $id"
-                    call.respondRedirect("/${configuration?.url}/$modelPath/list")
+                    call.respondRedirect("/${configuration?.url}/$entityPath/list")
                 }
             }
         }
@@ -557,15 +557,15 @@ open class BaseView<T : Any>(private val entityClass: T) {
      *
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
-     * @param modelPath The path to the model being updated, used in the URL
+     * @param entityPath The path to the entity being updated, used in the URL
      */
     fun exposeDetailsView(
         data: MutableMap<String, Any?>,
         template: String? = null,
-        modelPath: String
+        entityPath: String
     ) {
         application?.routing {
-            route("/${configuration?.url}/${modelPath}/edit/{id}") {
+            route("/${configuration?.url}/${entityPath}/edit/{id}") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -660,15 +660,15 @@ open class BaseView<T : Any>(private val entityClass: T) {
      *
      * @param data Map of data to be passed to the template
      * @param template Optional custom template name, if null the default template is used
-     * @param modelPath The path to the model being deleted, used in the URL
+     * @param entityPath The path to the entity being deleted, used in the URL
      */
     fun exposeDeleteView(
         data: MutableMap<String, Any?>,
         template: String? = null,
-        modelPath: String
+        entityPath: String
     ) {
         application?.routing {
-            route("/${configuration?.url}/${modelPath}/delete/{id}") {
+            route("/${configuration?.url}/${entityPath}/delete/{id}") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -696,16 +696,16 @@ open class BaseView<T : Any>(private val entityClass: T) {
 }
 
 /**
- * A specialised view for database model administration.
+ * A specialised view for database entity administration.
  *
- * ModelView is a concrete implementation of [BaseView] that provides standard admin panel
- * functionality for database models. It inherits all the capabilities of BaseView including route
+ * EntityView is a concrete implementation of [BaseView] that provides standard admin panel
+ * functionality for database entitys. It inherits all the capabilities of BaseView including route
  * setup and template rendering for CRUD operations.
  *
  * This class can be extended to customise admin behavior for specific entity classes, or used directly for
  * standard database administration needs.
  */
-class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
+class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
     /**
      * Sets up all the admin panel views and routes.
      *
@@ -715,7 +715,7 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
-     * @param entityCompanions Optional list of pairs containing entity classes for the models
+     * @param entityCompanions Optional list of pairs containing entity classes for the entitys
      * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
@@ -742,32 +742,33 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
 
         if (configuration.setAuthentication) {
             runBlocking {
-                // Create the AdminUsers table if it doesn't exist
-                this@ModelView.dao!!.createTable(AdminUser::class)
-
                 // Check if the admin user already exists
                 // and create it if it doesn't
                 val existingAdminUser: Any?
                 val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
-                if (database != null && entityCompanions != null) {
-                    existingAdminUser = this@ModelView.dao!!.find(
+                if (super.ormType == "Exposed") {
+                    // Create the AdminUser table if it doesn't exist
+                    this@EntityView.dao!!.createTable(AdminUser::class)
+                    existingAdminUser = this@EntityView.dao!!.find(
                         configuration.adminUsername,
                         AdminUser::class
                     )
                     if (existingAdminUser == null) {
                         val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
-                        this@ModelView.dao!!.save(entity, AdminUser::class)
+                        this@EntityView.dao!!.save(entity, AdminUser::class)
                     }
                 } else {
-                    existingAdminUser = this@ModelView.dao!!.find(configuration.adminUsername, JpaAdminUser::class)
+                    // Create the JpaAdminUser table if it doesn't exist
+                    this@EntityView.dao!!.createTable(JpaAdminUser::class)
+                    existingAdminUser = this@EntityView.dao!!.find(configuration.adminUsername, JpaAdminUser::class)
                     if (existingAdminUser == null) {
                         val entity = JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
-                        this@ModelView.dao!!.save(entity)
+                        this@EntityView.dao!!.save(entity)
                     }
                 }
 
                 // Expose the authentication view
-                this@ModelView.exposeLoginView(mutableMapOf("configuration" to configuration))
+                this@EntityView.exposeLoginView(mutableMapOf("configuration" to configuration))
             }
         }
 
@@ -778,33 +779,32 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
             )
         )
 
-        // Determine the model name based on the type of entity class provided
-        val model = if (this.entityClass is IntEntityClass<IntEntity>) {
-            this.entityClass.table.tableName
-        } else if (this.entityClass::class.annotations.any { it is Entity }) {
-            this.entityClass::class.simpleName ?: throw IllegalArgumentException("Model must have a simple name")
-        } else {
-            throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
+        // Determine the entity name based on the type of entity class provided
+        val entity = when (super.ormType) {
+            "Exposed" -> (this.entityClass as IntEntityClass<IntEntity>).table.tableName
+            "JPA" -> this.entityClass::class.simpleName
+                ?: throw IllegalArgumentException("Entity must have a simple name")
+
+            else -> throw IllegalArgumentException("Entity must be an IntEntityClass or annotated with @Entity")
         }
 
-        // Use the model name to determine the path for delete, list, create, and details views
-        val modelPath = if (this.entityClass is IntEntityClass<IntEntity>) {
-            this.entityClass.table.tableName.lowercase()
-        } else if (this.entityClass::class.annotations.any { it is Entity }) {
-            this.entityClass::class.simpleName?.lowercase()
-                ?: throw IllegalArgumentException("Model must have a simple name")
-        } else {
-            throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
+        // Use the entity name to determine the path for delete, list, create, and details views
+        val entityPath = when (super.ormType) {
+            "Exposed" -> (this.entityClass as IntEntityClass<IntEntity>).table.tableName.lowercase()
+            "JPA" -> this.entityClass::class.simpleName?.lowercase()
+                ?: throw IllegalArgumentException("Entity must have a simple name")
+
+            else -> throw IllegalArgumentException("Entity must be an IntEntityClass or annotated with @Entity")
         }
 
         this.exposeDeleteView(
             mutableMapOf(
                 "tables" to tableNames.map { it.lowercase() },
                 "configuration" to configuration,
-                "model" to model,
-                "modelPath" to modelPath
+                "entity" to entity,
+                "entityPath" to entityPath
             ),
-            modelPath = modelPath
+            entityPath = entityPath
         )
 
         for (table in tableNames) {
@@ -814,25 +814,25 @@ class ModelView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
                     "tableName" to table,
                     "tableNameLowercased" to table.lowercase(),
                 ),
-                modelPath = table.lowercase()
+                entityPath = table.lowercase()
             )
             this.exposeCreateView(
                 mutableMapOf(
-                    "model" to table,
+                    "entity" to table,
                     "configuration" to configuration,
                     "tableName" to table,
                     "tableNameLowercased" to table.lowercase(),
-                    "modelPath" to table.lowercase()
+                    "entityPath" to table.lowercase()
                 ),
-                modelPath = table.lowercase()
+                entityPath = table.lowercase()
             )
             this.exposeDetailsView(
                 mutableMapOf(
-                    "model" to table,
+                    "entity" to table,
                     "configuration" to configuration,
-                    "modelPath" to table.lowercase()
+                    "entityPath" to table.lowercase()
                 ),
-                modelPath = table.lowercase()
+                entityPath = table.lowercase()
             )
         }
     }

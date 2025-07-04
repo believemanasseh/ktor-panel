@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
  * Base admin class for the Ktor Panel library.
  *
  * This class serves as the main entry point for the admin panel functionality.
- * It manages the registration and rendering of model views and handles the overall
+ * It manages the registration and rendering of entity views and handles the overall
  * admin panel configuration.
  *
  * @property application Ktor application instance used to set up routes and serve content
@@ -30,10 +30,10 @@ class Admin(
     private val entityManagerFactory: EntityManagerFactory? = null
 ) {
     /**
-     * Collection of model views registered with this admin panel.
+     * Collection of entity views registered with this admin panel.
      * Each view represents a database table that will be managed through the admin interface.
      */
-    private val modelViews: MutableList<ModelView<*>> = mutableListOf()
+    private val entityViews: MutableList<EntityView<*>> = mutableListOf()
 
     /**
      * List of table names retrieved from the database.
@@ -44,7 +44,7 @@ class Admin(
     /**
      * List of entity classes registered with this admin panel.
      * Each pair contains the KClass of the entity and its corresponding IntEntityClass.
-     * This is used for type-safe database operations and model management.
+     * This is used for type-safe database operations and entity management.
      */
     private val entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>> =
         mutableListOf()
@@ -70,38 +70,38 @@ class Admin(
     }
 
     /**
-     * Returns the number of model views registered with this admin panel.
+     * Returns the number of entity views registered with this admin panel.
      *
      * This method provides a way to check how many models are currently being
      * managed by the admin panel. Useful for diagnostics and testing.
      *
-     * @return The count of ModelView instances added to this admin panel
+     * @return The count of EntityView instances added to this admin panel
      */
-    fun countModelViews(): Int {
-        return this.modelViews.size
+    fun countEntityViews(): Int {
+        return this.entityViews.size
     }
 
     /**
-     * Adds a single model view to the admin panel.
+     * Adds a single entity view to the admin panel.
      *
-     * This method registers a model view with the admin panel and immediately renders
-     * its associated pages by calling [ModelView.configurePageViews].
+     * This method registers an entity view with the admin panel and immediately renders
+     * its associated pages by calling [EntityView.configurePageViews].
      *
-     * @param view ModelView instance to be added to the admin panel
+     * @param view EntityView instance to be added to the admin panel
      */
-    fun addView(view: ModelView<*>) {
+    fun addView(view: EntityView<*>) {
         val tableName = if (view.entityClass is IntEntityClass<IntEntity>) {
             view.entityClass.table.tableName
         } else if (view.entityClass::class.annotations.any { it is Entity }) {
             view.entityClass::class.simpleName.toString()
         } else {
-            throw IllegalArgumentException("Model must be an IntEntity or annotated with @Entity")
+            throw IllegalArgumentException("Entity must be an IntEntity or annotated with @Entity")
         }
         this.tableNames.add(tableName)
-        this.modelViews.add(view)
+        this.entityViews.add(view)
 
         if (view.entityClass is IntEntityClass<IntEntity>) {
-            // If the model is an IntEntityClass, we can safely add it to the entity class pairs.
+            // If the entity is an IntEntityClass, we can safely add it to the entity class pairs.
             @Suppress("UNCHECKED_CAST")
             this.entityCompanions.add(
                 Pair(
@@ -122,14 +122,14 @@ class Admin(
     }
 
     /**
-     * Adds multiple model views to the admin panel.
+     * Adds multiple entity views to the admin panel.
      *
      * This method iteratively adds each view in the provided list by calling [addView]
      * for each element.
      *
-     * @param views Array containing model views to be added to the admin panel
+     * @param views Array containing entity views to be added to the admin panel
      */
-    fun addViews(views: Array<ModelView<*>>) {
+    fun addViews(views: Array<EntityView<*>>) {
         for (view in views) {
             this.addView(view)
         }
