@@ -135,7 +135,7 @@ After running the tests, you can find:
 To build the Sphinx documentation, use the following command:
 
 ```bash
-sphinx-build -b html docs/ build/
+sphinx-build -b html docs/ docs/build/
 ```
 
 ## Contributing
