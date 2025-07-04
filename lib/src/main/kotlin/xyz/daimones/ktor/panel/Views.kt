@@ -6,8 +6,10 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
+import jakarta.persistence.Id
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -30,6 +32,8 @@ import kotlin.collections.set
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
+import org.jetbrains.exposed.sql.Column as ExposedColumn
 
 /**
  * Manages base view rendering for admin panel pages.
@@ -109,7 +113,53 @@ open class BaseView<T : Any>(private val entityClass: T) {
         return if (entityClass is IntEntityClass<IntEntity>) {
             entityClass.table.columns.map { it.name }
         } else if (entityClass::class.annotations.any { it is Entity }) {
-            entityClass::class.memberProperties.map { it.name }
+            val properties = entityClass::class.memberProperties.sortedBy { it.name }.toMutableList()
+            val idProperty = properties.find { p -> p.javaField?.isAnnotationPresent(Id::class.java) == true }
+            val createdProperty = properties.find { p ->
+                val names = setOf(
+                    "created",
+                    "created_at",
+                    "createdAt",
+                    "creationDate",
+                    "createdOn",
+                    "creation_date",
+                    "created_on"
+                )
+                if (p.javaField?.isAnnotationPresent(Column::class.java) == true) {
+                    names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
+                } else {
+                    false
+                }
+            }
+            val modifiedProperty = properties.find { p ->
+                val names = setOf(
+                    "modified",
+                    "updated_at",
+                    "updatedAt",
+                    "lastModified",
+                    "lastUpdated",
+                    "last_modified",
+                    "last_updated"
+                )
+                if (p.javaField?.isAnnotationPresent(Column::class.java) == true) {
+                    names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
+                } else {
+                    false
+                }
+            }
+            if (idProperty != null) {
+                properties.remove(idProperty)
+                properties.add(0, idProperty)
+            }
+            if (createdProperty != null) {
+                properties.remove(createdProperty)
+                properties.add(properties.size, createdProperty)
+            }
+            if (modifiedProperty != null) {
+                properties.remove(modifiedProperty)
+                properties.add(properties.size, modifiedProperty)
+            }
+            properties.map { it.name }
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -160,7 +210,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * @return A string representing the HTML input type (e.g., "text", "number", "checkbox", etc.)
      */
     private fun <T : Any> getHtmlInputType(column: T): String {
-        return if (column is Column<*>) {
+        return if (column is ExposedColumn<*>) {
             when (column.columnType) {
                 is EntityIDColumnType<*> -> "number"
                 is VarCharColumnType, is TextColumnType, is CharacterColumnType -> {
