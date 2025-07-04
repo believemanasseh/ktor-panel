@@ -45,7 +45,7 @@ dependencies {
 // Import necessary components
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
-import xyz.daimones.ktor.panel.ModelView
+import xyz.daimones.ktor.panel.EntityView
 import org.jetbrains.exposed.sql.Database
 
 fun Application.configureAdminPanel() {
@@ -65,8 +65,8 @@ fun Application.configureAdminPanel() {
     val admin = Admin(this, config, database)
 
     // Add your models to the admin panel
-    admin.addView(ModelView(User))
-    admin.addView(ModelView(Product))
+    admin.addView(EntityView(User))
+    admin.addView(EntityView(Product))
 }
 ```
 
