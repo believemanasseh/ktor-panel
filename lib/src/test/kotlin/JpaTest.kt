@@ -1,6 +1,7 @@
 import io.ktor.server.testing.*
 import jakarta.persistence.EntityManagerFactory
-import jakarta.persistence.Persistence
+import org.hibernate.jpa.HibernatePersistenceConfiguration
+import org.hibernate.tool.schema.Action
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.EntityView
@@ -14,7 +15,17 @@ class JpaTest {
 
     @BeforeTest
     fun setup() {
-        entityManagerFactory = Persistence.createEntityManagerFactory("ktor-panel-test")
+        entityManagerFactory =
+            HibernatePersistenceConfiguration("AdminUsers")
+                .managedClass(JpaAdminUser::class.java)
+                .managedClass(JpaAdminUser::class.java)
+                .jdbcUrl("jdbc:h2:mem:hibernate_example;DB_CLOSE_DELAY=-1")
+                .jdbcDriver("org.h2.Driver")
+                .jdbcCredentials("sa", "")
+                .schemaToolingAction(Action.CREATE_DROP)
+                .jdbcPoolSize(16)
+                .showSql(true, true, true)
+                .createEntityManagerFactory()
     }
 
     @Test
