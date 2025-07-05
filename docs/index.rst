@@ -61,12 +61,6 @@ Basic Setup
    import org.jetbrains.exposed.sql.Database
 
    fun Application.configureAdminPanel() {
-       // Setup your database connection
-       val database = Database.connect(
-           "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-           driver = "org.h2.Driver"
-       )
-
        // Create admin configuration
        val config = Configuration(
            url = "admin",           // Access at /admin
@@ -92,9 +86,26 @@ Add to your Ktor application
            json()
        }
 
-       // Install Mustache for templates
+       // Setup your database connection
+       val database = Database.connect(
+           "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+           driver = "org.h2.Driver"
+       )
+
+       // OPTIONAL: Install Mustache for templates (by default ktor-panel configures Mustache for rendering views)
        install(Mustache) {
-           mustacheFactory = DefaultMustacheFactory("templates")
+           val roots = listOf("templates", "panel_templates")
+           mustacheFactory = object : DefaultMustacheFactory() {
+               override fun getReader(resourceName: String): Reader {
+                   for (root in roots) {
+                       val stream = this.javaClass.classLoader.getResourceAsStream("$root/$resourceName")
+                       if (stream != null) {
+                           return stream.reader()
+                       }
+                   }
+                   throw java.io.FileNotFoundException("Template $resourceName not found in $roots")
+               }
+           }
        }
 
        // Add admin panel
@@ -130,6 +141,7 @@ override the defaults:
 -  ``kt-panel-create.hbs`` - Form for creating new records
 -  ``kt-panel-details.hbs`` - Detailed view of a record
 -  ``kt-panel-update.hbs`` - Form for updating existing records
+-  ``kt-panel-delete.hbs`` - Confirmation for deleting records
 
 Testing
 -------
