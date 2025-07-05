@@ -32,6 +32,18 @@ package xyz.daimones.ktor.panel
  * 
  * @property adminPassword The default password for the admin user. This is used for authentication purposes.
  *             Default is "admin". This can be overridden in the admin user management interface.
+ *
+ * @property customIndexTemplate Optional custom Mustache template for the index/dashboard view.
+ *
+ * @property customListTemplate Optional custom Mustache template for listing entities in the admin panel.
+ *
+ * @property customCreateTemplate Optional custom Mustache template for creating new entities in the admin panel.
+ *
+ * @property customDetailsTemplate Optional custom Mustache template for displaying details of a specific entity.
+ *
+ * @property customLoginTemplate Optional custom Mustache template for the login page of the admin panel.
+ *
+ * @property customDeleteTemplate Optional custom Mustache template for the delete confirmation page in the admin panel.
  * 
  * @see Admin
  * @see BaseView
@@ -42,6 +54,12 @@ data class Configuration(
     val setAuthentication: Boolean = true,
     val adminName: String = "Admin",
     val adminUsername: String = "admin",
-    val adminPassword: String = "admin"
+    val adminPassword: String = "admin",
+    val customIndexTemplate: String? = null,
+    val customListTemplate: String? = null,
+    val customCreateTemplate: String? = null,
+    val customDetailsTemplate: String? = null,
+    val customLoginTemplate: String? = null,
+    val customDeleteTemplate: String? = null
 )
 

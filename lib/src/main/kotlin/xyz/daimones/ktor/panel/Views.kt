@@ -72,19 +72,22 @@ open class BaseView<T : Any>(private val entityClass: T) {
     protected var ormType: String? = null
 
     /** Default Mustache template for the index page. */
-    private val defaultIndexView = "kt-panel-index.hbs"
+    private val defaultIndexTemplate = "kt-panel-index.hbs"
 
     /** Default Mustache template for the list page. */
-    private val defaultListView = "kt-panel-list.hbs"
+    private val defaultListTemplate = "kt-panel-list.hbs"
 
     /** Default Mustache template for the create page. */
-    private val defaultCreateView = "kt-panel-create.hbs"
+    private val defaultCreateTemplate = "kt-panel-create.hbs"
 
     /** Default Mustache template for the details page. */
-    private val defaultDetailsView = "kt-panel-details.hbs"
+    private val defaultDetailsTemplate = "kt-panel-details.hbs"
 
     /** Default Mustache template for the login page. */
-    private val defaultLoginView = "kt-panel-login.hbs"
+    private val defaultLoginTemplate = "kt-panel-login.hbs"
+
+    /** Default Mustache template for the delete confirmation page. */
+    private val defaultDeleteTemplate = "kt-panel-delete.hbs"
 
     /**
      * List of headers for the entity's columns. This is used to render table headers in the list
@@ -290,24 +293,22 @@ open class BaseView<T : Any>(private val entityClass: T) {
      *
      * @param call The routing call to respond to
      * @param cookies The request cookies to check for session ID
-     * @param template Optional custom template name, if null the default template is used
      * @param data Map of data to be passed to the template
      * @param endpoint The endpoint being accessed (default is "login")
      */
     private suspend fun validateCookie(
         call: RoutingCall,
         cookies: RequestCookies,
-        template: String? = null,
         data: Map<String, Any>,
         endpoint: String = "login"
     ) {
         val sessionId = cookies["session_id"]
         if (sessionId != null) {
-            call.respond(MustacheContent(template ?: defaultIndexView, data))
+            call.respond(MustacheContent(configuration?.customIndexTemplate ?: defaultIndexTemplate, data))
         } else {
             val loginUrl = "/${configuration?.url}/login"
             if (endpoint == "login") {
-                call.respond(MustacheContent(template ?: defaultLoginView, data))
+                call.respond(MustacheContent(configuration?.customLoginTemplate ?: defaultLoginTemplate, data))
             } else {
                 call.respondRedirect(loginUrl)
             }
@@ -321,14 +322,13 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * specified template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      */
-    protected fun exposeLoginView(data: MutableMap<String, Any>, template: String? = null) {
+    protected fun exposeLoginView(data: MutableMap<String, Any>) {
         application?.routing {
             route("/${configuration?.url}/login") {
                 get {
                     val cookies = call.request.cookies
-                    validateCookie(call, cookies, template, data)
+                    validateCookie(call, cookies, data)
                 }
 
                 post {
@@ -356,7 +356,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
                             call.respondRedirect("/${configuration?.url}${endpoint}")
                         } else {
                             data["errorMessage"] = "Invalid username or password"
-                            call.respond(MustacheContent(template ?: defaultLoginView, data))
+                            call.respond(
+                                MustacheContent(
+                                    configuration?.customLoginTemplate ?: defaultLoginTemplate,
+                                    data
+                                )
+                            )
                         }
                     }
 
@@ -386,16 +391,15 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * specified template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      */
-    protected fun exposeIndexView(data: Map<String, Any>, template: String? = null) {
+    protected fun exposeIndexView(data: Map<String, Any>) {
         application?.routing {
             val endpoint =
                 if (configuration?.endpoint === "/") "" else "/${configuration?.endpoint}"
             route("/${configuration?.url}${endpoint}") {
                 get {
                     val cookies = call.request.cookies
-                    validateCookie(call, cookies, template, data, "index")
+                    validateCookie(call, cookies, data, "index")
                 }
             }
         }
@@ -408,14 +412,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      * @param entityPath The path to the entity being listed, used in the URL
      */
-    protected fun exposeListView(
-        data: MutableMap<String, Any>,
-        template: String? = null,
-        entityPath: String
-    ) {
+    protected fun exposeListView(data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
             route("/${configuration?.url}/${entityPath}/list") {
                 get {
@@ -437,7 +436,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                             data.remove("successMessage")
                         }
 
-                        call.respond(MustacheContent(template ?: defaultListView, data))
+                        call.respond(MustacheContent(configuration?.customListTemplate ?: defaultListTemplate, data))
                     } else {
                         val loginUrl = "/${configuration?.url}/login"
                         call.respondRedirect(loginUrl)
@@ -450,18 +449,13 @@ open class BaseView<T : Any>(private val entityClass: T) {
     /**
      * Sets up the route for the create view that allows adding new records.
      *
-     * This method creates a POST route for adding new records to a table, using the specified
+     * This method creates a POST route for adding new records to a table, using a custom
      * template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      * @param entityPath The path to the entity being created, used in the URL
      */
-    protected fun exposeCreateView(
-        data: MutableMap<String, Any?>,
-        template: String? = null,
-        entityPath: String
-    ) {
+    protected fun exposeCreateView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
             route("/${configuration?.url}/${entityPath}/new") {
                 get {
@@ -500,7 +494,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
                         val tablesData =
                             mapOf("headers" to headers, "data" to mapOf("values" to tableDataValues))
                         data["tablesData"] = tablesData
-                        call.respond(MustacheContent(template ?: defaultCreateView, data))
+                        call.respond(
+                            MustacheContent(
+                                configuration?.customCreateTemplate ?: defaultCreateTemplate,
+                                data
+                            )
+                        )
                     } else {
                         val loginUrl = "/${configuration?.url}/login"
                         call.respondRedirect(loginUrl)
@@ -556,14 +555,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      * @param entityPath The path to the entity being updated, used in the URL
      */
-    fun exposeDetailsView(
-        data: MutableMap<String, Any?>,
-        template: String? = null,
-        entityPath: String
-    ) {
+    fun exposeDetailsView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
             route("/${configuration?.url}/${entityPath}/edit/{id}") {
                 get {
@@ -642,7 +636,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
                         data["fields"] = fieldsForTemplate
                         data["idValue"] = idValue.toString()
                         data["object"] = obj
-                        call.respond(MustacheContent(template ?: defaultDetailsView, data))
+                        call.respond(
+                            MustacheContent(
+                                configuration?.customDetailsTemplate ?: defaultDetailsTemplate,
+                                data
+                            )
+                        )
                     } else {
                         val loginUrl = "/${configuration?.url}/login"
                         call.respondRedirect(loginUrl)
@@ -659,14 +658,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * specified template (or default template if none provided).
      *
      * @param data Map of data to be passed to the template
-     * @param template Optional custom template name, if null the default template is used
      * @param entityPath The path to the entity being deleted, used in the URL
      */
-    fun exposeDeleteView(
-        data: MutableMap<String, Any?>,
-        template: String? = null,
-        entityPath: String
-    ) {
+    fun exposeDeleteView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
             route("/${configuration?.url}/${entityPath}/delete/{id}") {
                 get {
@@ -684,7 +678,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
                             throw IllegalStateException("Deleted instance is not an IntEntity")
                         }
                         data["instanceId"] = instanceId
-                        call.respond(MustacheContent(template ?: "kt-panel-delete.hbs", data))
+                        call.respond(
+                            MustacheContent(
+                                configuration?.customDeleteTemplate ?: defaultDeleteTemplate,
+                                data
+                            )
+                        )
                     } else {
                         val loginUrl = "/${configuration?.url}/login"
                         call.respondRedirect(loginUrl)
