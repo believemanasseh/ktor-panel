@@ -715,7 +715,7 @@ class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
-     * @param entityCompanions Optional list of pairs containing entity classes for the entitys
+     * @param entityCompanions Optional list of pairs containing entity classes for the entity
      * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
