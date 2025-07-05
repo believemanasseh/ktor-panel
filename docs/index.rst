@@ -140,7 +140,6 @@ override the defaults:
 -  ``kt-panel-list.hbs`` - List view for database records
 -  ``kt-panel-create.hbs`` - Form for creating new records
 -  ``kt-panel-details.hbs`` - Detailed view of a record
--  ``kt-panel-update.hbs`` - Form for updating existing records
 -  ``kt-panel-delete.hbs`` - Confirmation for deleting records
 
 Testing
