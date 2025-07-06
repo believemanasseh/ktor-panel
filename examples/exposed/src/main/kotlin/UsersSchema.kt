@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 
 
 object Users : IntIdTable() {
-    val email: Column<String> = varchar("name", length = 50).uniqueIndex()
+    val email: Column<String> = varchar("email", length = 50).uniqueIndex()
     val firstName: Column<String> = varchar("first_name", length = 255)
     val lastName: Column<String> = varchar("last_name", length = 255)
     val password: Column<String> = varchar("password", length = 100)
