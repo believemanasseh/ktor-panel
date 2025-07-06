@@ -109,7 +109,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
     /**
      * Initialises the headers for the entity's columns.
      *
-     * This method sets up the headers based on the entity type, either from Exposed IntIdTable or
+     * This method sets up the headers based on the entity type, either from Exposed Entity class or
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
     private fun setHeaders(): List<String> {
@@ -274,13 +274,56 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     }
                     rowData.add(actualValue)
                 }
-            } else if (entityClass::class.annotations.any { it is Entity }) {
-                entityClass::class.memberProperties.forEach { property ->
+            } else if (ormType == "JPA") {
+                val properties = entityClass::class.memberProperties.toMutableList()
+                println(properties)
+                println(properties.size)
+
+                properties.forEach { property ->
                     val value = property.call(entity)
-                    rowData.add(value ?: "null")
+                    rowData.add(Pair(property.name, (value ?: "null")))
                 }
             }
-            mapOf("id" to rowData[0], "nums" to rowData)
+
+            val createdNames = setOf(
+                "created",
+                "created_at",
+                "createdAt",
+                "creationDate",
+                "createdOn",
+                "creation_date",
+                "created_on"
+            )
+            val modifiedNames = setOf(
+                "modified",
+                "updated_at",
+                "updatedAt",
+                "lastModified",
+                "lastUpdated",
+                "last_modified",
+                "last_updated"
+            )
+            val map: MutableMap<Int, String> = mutableMapOf()
+            var index = 1
+            for (data in rowData) {
+                if (data is Pair<*, *>) {
+                    if (data.first == "id") {
+                        map[0] = data.second.toString()
+                    } else if (createdNames.contains(data.first)) {
+                        map[rowData.size - 1] = data.second.toString()
+                    } else if (modifiedNames.contains(data.first)) {
+                        map[rowData.size - 2] = data.second.toString()
+                    } else {
+                        map[index] = data.second.toString()
+                        index++
+                    }
+                }
+            }
+            val arr = arrayOfNulls<String>(map.size)
+            for ((key, value) in map) {
+                arr[key] = value
+            }
+            mapOf("id" to arr[0], "nums" to arr)
         }
     }
 

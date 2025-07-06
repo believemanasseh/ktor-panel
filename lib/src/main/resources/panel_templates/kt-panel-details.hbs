@@ -3,25 +3,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <title>Edit {{model}} - {{idValue}}</title>
+    <title>Edit {{entity}} - {{idValue}}</title>
 </head>
 <body class="bg-gray-100">
 <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
     <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
-       href="/{{configuration.url}}/{{modelPath}}/list">
-        Back to {{model}} List
+       href="/{{configuration.url}}/{{entityPath}}/list">
+        Back to {{entity}} List
     </a>
 </nav>
 
 <div class="container mx-auto p-4 w-[70vw]">
-    <h1 class="text-2xl font-bold my-4 capitalize">Edit {{model}} (ID: {{idValue}})</h1>
+    <h1 class="text-2xl font-bold my-4 capitalize">Edit {{entity}} (ID: {{idValue}})</h1>
 
     {{^fields}}
         <p class="text-red-500">No fields found or record does not exist.</p>
     {{/fields}}
 
     {{#fields}} {{! Check if fields list is not empty before rendering form }}
-    <form method="POST" action="/{{configuration.url}}/{{modelPath}}/edit/{{idValue}}"
+    <form method="POST" action="/{{configuration.url}}/{{entityPath}}/edit/{{idValue}}"
           class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
     {{/fields}}
     {{#fields}}

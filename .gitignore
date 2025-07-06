@@ -30,5 +30,7 @@ hs_err_pid*
 replay_pid*
 
 lib/bin
+examples/exposed/bin
+examples/hibernate/bin
 
 .kotlin

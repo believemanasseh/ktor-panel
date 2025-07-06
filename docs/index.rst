@@ -150,7 +150,7 @@ command:
 
 .. code:: bash
 
-   ./gradlew test
+   ./gradlew :lib:test
 
 After running the tests, you can find:
 

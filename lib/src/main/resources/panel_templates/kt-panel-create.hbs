@@ -3,13 +3,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <title>Edit {{model}} - {{idValue}}</title>
+    <title>Edit {{entity}} - {{idValue}}</title>
 </head>
 <body class="bg-gray-100">
 <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
     <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
-       href="/{{configuration.url}}/{{modelPath}}/list">
-        Back to {{model}} List
+       href="/{{configuration.url}}/{{entityPath}}/list">
+        Back to {{entity}} List
     </a>
 </nav>
 
@@ -17,7 +17,7 @@
     <h1 class="text-2xl font-bold my-4">New instance</h1>
 
     {{#fields}}
-    <form method="POST" action="/{{configuration.url}}/{{modelPath}}/new"
+    <form method="POST" action="/{{configuration.url}}/{{entityPath}}/new"
           class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
         <div class="mb-6">
             {{^is_hidden}}
