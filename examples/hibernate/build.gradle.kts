@@ -25,4 +25,5 @@ dependencies {
     testImplementation(libs.kotlin.test.junit5)
     implementation(libs.h2)
     implementation(libs.hibernate.core)
+    implementation(libs.jbcrypt)
 }

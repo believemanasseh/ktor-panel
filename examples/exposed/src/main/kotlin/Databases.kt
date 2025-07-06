@@ -11,13 +11,12 @@ fun Application.configureDatabases(): Database {
     transaction(database) {
         SchemaUtils.create(Users)
         val hashedPassword = BCrypt.hashpw("password", BCrypt.gensalt())
-        val user = User.new {
+        User.new {
             email = "test@email.com"
             firstName = "test"
             lastName = "user"
             password = hashedPassword
         }
-        println("$user user")
     }
 
     return database
