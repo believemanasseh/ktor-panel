@@ -254,7 +254,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
     private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
         val entities = dao!!.findAll(entityClass::class)
         return entities.map { entity ->
-            val rowData = mutableListOf<Any?>()
+            var rowData = mutableListOf<Any?>()
             if (ormType == "Exposed") {
                 var actualValue: Any?
                 (entityClass as IntEntityClass<IntEntity>).table.columns.forEach { column ->
@@ -323,7 +323,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
             for ((key, value) in map) {
                 arr[key] = value
             }
-            mapOf("id" to arr[0], "nums" to arr)
+            rowData = if (map.isEmpty()) rowData else arr.toMutableList()
+            mapOf("id" to rowData[0], "nums" to rowData)
         }
     }
 
