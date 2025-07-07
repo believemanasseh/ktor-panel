@@ -58,7 +58,7 @@ fun Application.configureAdminPanel() {
     // Initialise admin panel
     val admin = Admin(this, config, database)
 
-    // Add your models to the admin panel
+    // Add your entities to the admin panel
     admin.addView(EntityView(User))
     admin.addView(EntityView(Product))
 }
