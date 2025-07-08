@@ -5,11 +5,13 @@ import io.ktor.server.application.*
 import io.ktor.server.mustache.*
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
 import java.io.Reader
 import kotlin.reflect.KClass
+import kotlin.reflect.full.companionObjectInstance
 
 /**
  * Base admin class for the Ktor Panel library.
@@ -26,7 +28,7 @@ import kotlin.reflect.KClass
 class Admin(
     private val application: Application,
     private val configuration: Configuration,
-    private val database: Database? = null,
+    private val database: Any? = null,
     private val entityManagerFactory: EntityManagerFactory? = null
 ) {
     /**
@@ -90,32 +92,24 @@ class Admin(
      * @param view EntityView instance to be added to the admin panel
      */
     fun addView(view: EntityView<*>) {
-        val tableName = if (view.entityClass is IntEntityClass<IntEntity>) {
-            view.entityClass.table.tableName
-        } else if (view.entityClass::class.annotations.any { it is Entity }) {
-            view.entityClass::class.simpleName.toString()
+        val entityKClass = view.entityKClass
+        val hasEntityAnnotation = entityKClass.annotations.any { it is Entity }
+        val hasSerializableAnnotation = entityKClass.annotations.any { it is Serializable }
+
+        val tableName = if (database is Database) {
+            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName
+        } else if (hasEntityAnnotation || hasSerializableAnnotation || entityKClass.isData) {
+            entityKClass.simpleName.toString()
         } else {
-            throw IllegalArgumentException("Entity must be an IntEntity or annotated with @Entity")
+            throw IllegalArgumentException("Entity must be an IntEntity, Data Class or annotated with @Entity or @Serializable")
         }
         this.tableNames.add(tableName)
         this.entityViews.add(view)
-
-        if (view.entityClass is IntEntityClass<IntEntity>) {
-            // If the entity is an IntEntityClass, we can safely add it to the entity class pairs.
-            @Suppress("UNCHECKED_CAST")
-            this.entityCompanions.add(
-                Pair(
-                    view.entityClass::class as KClass<IntEntityClass<IntEntity>>,
-                    view.entityClass
-                )
-            )
-        }
 
         view.configurePageViews(
             application = this.application,
             configuration = this.configuration,
             tableNames = this.tableNames,
-            entityCompanions = this.entityCompanions.ifEmpty { null },
             database = this.database,
             entityManagerFactory = this.entityManagerFactory
         )

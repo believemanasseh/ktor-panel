@@ -9,10 +9,10 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
-import xyz.daimones.ktor.panel.database.entities.AdminUser
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
 
 /**
@@ -20,31 +20,15 @@ import kotlin.reflect.full.memberProperties
  * It provides methods to interact with the database, including CRUD operations and table creation.
  * 
  * @property database The Exposed Database instance used for transactions.
- * @property entityCompanions A list of pairs containing KClass and IntEntityClass for registered entities.
+ * @property entityKClass The entity KClass used for database operations.
  */
-class ExposedDao(
+class ExposedDao<T : Any>(
     private val database: Database,
-    private val entityCompanions: List<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>
-) : DatabaseAccessObjectInterface {
-    // The registry stores the powerful entity classes themselves.
-    // It's created once when the DAO is initialised.
-    @Suppress("UNCHECKED_CAST")
-    private val entityCompanionRegistry: Map<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>> =
-        entityCompanions.toMap() + mapOf(AdminUser::class as KClass<out IntEntityClass<IntEntity>> to AdminUser)
-
-    /**
-     * Retrieves the companion object for a given entity class.
-     * This method checks the companion registry to find the appropriate IntEntityClass for the given entity class.
-     *
-     * @param kClass The KClass of the entity for which to retrieve the entity class.
-     * @return The IntEntity object for the specified kotlin reflection object (KClass).
-     * @throws IllegalArgumentException if the entity class is not registered with this DAO.
-     */
-    private fun <T : Any> getEntityCompanion(kClass: KClass<T>): IntEntityClass<IntEntity> {
-        @Suppress("UNCHECKED_CAST")
-        return entityCompanionRegistry[kClass as KClass<out IntEntityClass<IntEntity>>]
-            ?: throw IllegalArgumentException("Entity class '${kClass.simpleName}' is not registered with this DAO.")
-    }
+    private val entityKClass: KClass<T>
+) : DatabaseAccessObjectInterface<T> {
+    /** Companion object instance for the entity */
+    private val companion = (entityKClass.companionObjectInstance as? IntEntityClass<IntEntity>)
+        ?: throw IllegalArgumentException("Provided KClass must have a companion object that is an IntEntityClass")
 
     /**
      * Copies properties from the source object to the target IntEntity.
@@ -58,12 +42,31 @@ class ExposedDao(
             .filterIsInstance<KMutableProperty1<*, *>>()
             .associateBy { it.name }
 
+        // Extension function to convert snake_case to camelCase.
+        fun String.snakeToCamelCase(): String {
+            var capitaliseNext = false
+            return this.asSequence().map { char ->
+                if (char == '_') {
+                    capitaliseNext = true
+                    ""
+                } else {
+                    val newChar = if (capitaliseNext) {
+                        capitaliseNext = false
+                        char.uppercase()
+                    } else {
+                        char.toString()
+                    }
+                    newChar
+                }
+            }.joinToString("")
+        }
+
         if (source is Map<*, *>) {
             // If the source is a Map, iterate through its key-value pairs.
             for ((key, value) in source) {
-                val name = key as? String ?: continue 
+                var name = key as String
+                name = name.snakeToCamelCase()
                 if (name == "id") continue
-
                 targetProperties[name]?.let { targetProp ->
                     @Suppress("UNCHECKED_CAST")
                     (targetProp as KMutableProperty1<Any, Any?>).set(target, value)
@@ -88,28 +91,24 @@ class ExposedDao(
      * Finds an entity by its primary key.
      * 
      * @param id The primary key of the entity to find.
-     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override suspend fun <T : Any> findById(id: Int, kClass: KClass<T>): T? {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun findById(id: Int): T? {
         val result = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
-            companion.findById(id)
+                companion.findById(id)
             }
         }
         @Suppress("UNCHECKED_CAST")
-        return result as? T?
+        return result as? T
     }
 
     /**
      * Finds all entities of a given type.
      *
-     * @param kClass The KClass of the entity to find.
      * @return A list of all entities of type T.
      */
-    override suspend fun <T : Any> findAll(kClass: KClass<T>): List<T?> {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun findAll(): List<T?> {
         val result = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
                 companion.all().toList()
@@ -123,34 +122,27 @@ class ExposedDao(
      * Finds an entity by its username.
      * 
      * @param username The username to search for.
-     * @param kClass The KClass of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override suspend fun <T : Any> find(
-            username: String,
-            kClass: KClass<T>,
-    ): T? {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun find(username: String): T? {
         val result = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
                 companion.find { AdminUsers.username eq username }.firstOrNull()
             }
         }
         @Suppress("UNCHECKED_CAST")
-        return result as? T?
+        return result as? T
     }
 
     /**
      * Updates an existing entity.
      * This method uses a map of field names to values to update the entity.
      *
-     * @param kClass The KClass of the entity to update.
      * @param data A map of field names to values to update.
      * @return The updated entity.
      * @throws IllegalArgumentException if the entity with the given ID is not found.
      */
-    override suspend fun <T : Any> update(data: Map<String, Any>, kClass: KClass<T>): T {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun update(data: Map<String, Any>): T {
         val updatedEntity = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
                 val id = data["id"].toString().toInt()
@@ -171,19 +163,17 @@ class ExposedDao(
      * @return The updated entity.
      * @throws NotImplementedError if this method is called directly.
      */
-    override suspend fun <T : Any> update(entity: T): T {
-        throw NotImplementedError("ExposedDao requires a map and entity class. Use update(data: Map<String, Any>, kClass: KClass<T>) instead")
+    override suspend fun update(entity: T): T {
+        throw NotImplementedError("ExposedDao requires a map and entity class. Use update(data: Map<String, Any>) instead")
     }
 
     /**
      * Saves a new entity. This method uses a map of field names to values to create the entity.
      * 
      * @param data A map of field names to values to save.
-     * @param kClass The KClass of the entity to save.
      * @return The saved entity.
      */
-    override suspend fun <T : Any> save(data: Map<String, Any>, kClass: KClass<T>): T {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun save(data: Map<String, Any>): T {
         val savedEntity = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
                 companion.new { copyProperties(data, this) }
@@ -200,34 +190,30 @@ class ExposedDao(
      * @return The saved entity.
      * @throws NotImplementedError if this method is called directly.
      */
-    override suspend fun <T : Any> save(entity: T): T {
-        throw NotImplementedError("ExposedDao requires a map and entity class. Use save(data: Map<String, Any>, kClass: KClass<T>) instead.")
+    override suspend fun save(entity: T): T {
+        throw NotImplementedError("ExposedDao requires a map and entity class. Use save(data: Map<String, Any>) instead.")
     }
 
     /**
      * Deletes an entity by its primary key.
      * 
      * @param id The primary key of the entity to delete.
-     * @param kClass The KClass of the entity to delete.
      * @return The deleted entity, or null if no entity was found with the given ID.
      */
-    override suspend fun <T : Any> delete(id: Int, kClass: KClass<T>): T? {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun delete(id: Int): T {
         val obj = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) { companion.findById(id) }
         }
+        obj?.delete() ?: throw IllegalArgumentException("Entity with id $id not found.")
         @Suppress("UNCHECKED_CAST")
-        return obj?.id as T?
+        return obj as T
     }
 
     /**
      * Creates a table for the given entity class.
      * This method uses Exposed's SchemaUtils to create the table in the database.
-     *
-     * @param kClass The KClass of the entity for which to create the table.
      */
-    override suspend fun <T : Any> createTable(kClass: KClass<T>) {
-        val companion = getEntityCompanion(kClass)
+    override suspend fun createTable() {
         withContext(Dispatchers.IO) { transaction(this@ExposedDao.database) { SchemaUtils.create(companion.table) } }
     }
 }

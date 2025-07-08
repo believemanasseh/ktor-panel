@@ -1,16 +1,18 @@
 package xyz.daimones.ktor.panel
 
+import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.reflect.*
 import jakarta.persistence.Column
-import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Id
 import kotlinx.coroutines.runBlocking
+import org.bson.types.ObjectId
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -24,14 +26,19 @@ import org.mindrot.jbcrypt.BCrypt
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
+import xyz.daimones.ktor.panel.database.dao.MongoDao
 import xyz.daimones.ktor.panel.database.entities.AdminUser
 import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
+import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.collections.set
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KType
+import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.javaField
 import org.jetbrains.exposed.sql.Column as ExposedColumn
 
@@ -41,9 +48,9 @@ import org.jetbrains.exposed.sql.Column as ExposedColumn
  * This class is responsible for setting up routes and rendering templates for the admin panel. It
  * provides functionality for index, list, create, details, and update views.
  *
- * @property entityClass The database entity class to generate admin views for
+ * @property kClass The KClass of the database entity class to generate admin views for
  */
-open class BaseView<T : Any>(private val entityClass: T) {
+open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     /**
      * Configuration for the admin panel. This is set during [EntityView.configurePageViews] and
      * contains settings like URL, endpoint, and admin name.
@@ -58,18 +65,18 @@ open class BaseView<T : Any>(private val entityClass: T) {
 
     /**
      * The database instance for data access. This is set during [EntityView.configurePageViews] and
-     * used by the ExposedDao for database operations.
+     * used by the ExposedDao or MongoDao for database operations.
      */
-    protected var database: Database? = null
+    protected var database: Any? = null
 
     /**
      * The data access object interface for database operations. This is set during
      * [EntityView.configurePageViews] and used to interact with the database.
      */
-    protected var dao: DatabaseAccessObjectInterface? = null
+    protected var dao: DatabaseAccessObjectInterface<T>? = null
 
-    /** ORM type used for the entity class. */
-    protected var ormType: String? = null
+    /** ORM/ODM type used for the entity class. */
+    protected var driverType: String? = null
 
     /** Default Mustache template for the index page. */
     private val defaultIndexTemplate = "kt-panel-index.hbs"
@@ -93,7 +100,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * List of headers for the entity's columns. This is used to render table headers in the list
      * view.
      */
-    private var headers: List<String>
+    lateinit var headers: List<String>
 
     /**
      * Success message to be displayed after creating or updating an instance. This is set during
@@ -101,22 +108,17 @@ open class BaseView<T : Any>(private val entityClass: T) {
      */
     private var successMessage: String? = null
 
-    init {
-        // Initialise headers based on the entity type
-        this.headers = setHeaders()
-    }
-
     /**
      * Initialises the headers for the entity's columns.
      *
      * This method sets up the headers based on the entity type, either from Exposed Entity class or
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
-    private fun setHeaders(): List<String> {
-        return if (entityClass is IntEntityClass<IntEntity>) {
-            entityClass.table.columns.map { it.name }
-        } else if (entityClass::class.annotations.any { it is Entity }) {
-            val properties = entityClass::class.memberProperties.sortedBy { it.name }.toMutableList()
+    fun setHeaders(): List<String> {
+        return if (driverType == "Exposed") {
+            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { it.name }
+        } else if (driverType == "JPA") {
+            val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
             val idProperty = properties.find { p -> p.javaField?.isAnnotationPresent(Id::class.java) == true }
             val createdProperty = properties.find { p ->
                 val names = setOf(
@@ -163,6 +165,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
                 properties.add(properties.size, modifiedProperty)
             }
             properties.map { it.name }
+        } else if (driverType == "Mongo") {
+            entityKClass.memberProperties.map { it.name }
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -174,13 +178,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * This method maps each column in the entity to its HTML input type and original type, which is
      * useful for generating forms and input fields dynamically.
      *
-     * @param entityClass The entity class for which to retrieve column types
      * @return A list of maps containing column names, HTML input types, and original types
      * @throws IllegalArgumentException if the entity is not an IntEntity or does not have the @Entity annotation
      */
-    private fun <T : Any> getColumnTypes(entityClass: T): List<Map<String, String>> {
-        return if (entityClass is IntEntityClass<IntEntity>) {
-            entityClass.table.columns.map { column ->
+    private fun getColumnTypes(): List<Map<String, String>> {
+        return if (driverType == "Exposed") {
+            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { column ->
                 val htmlInputType = getHtmlInputType(column)
                 mapOf(
                     "name" to column.name,
@@ -188,8 +191,8 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     "original_type" to column.columnType::class.simpleName.orEmpty()
                 )
             }
-        } else if (entityClass::class.annotations.any { it is Entity }) {
-            entityClass::class.memberProperties.map { property ->
+        } else if (driverType == "JPA") {
+            entityKClass.memberProperties.map { property ->
                 val columnName = property.name
                 val htmlInputType = getHtmlInputType(property.returnType)
                 mapOf(
@@ -234,7 +237,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
             when (column.classifier) {
                 String::class -> "text"
                 Int::class, Long::class, Short::class -> "number"
+                Float::class, Double::class -> "number"
                 Boolean::class -> "checkbox"
+                Date::class -> "date"
                 LocalDateTime::class -> "datetime-local"
                 else -> "text" // Default fallback
             }
@@ -252,12 +257,12 @@ open class BaseView<T : Any>(private val entityClass: T) {
      * @return A list of maps where each map represents a record with its ID and column values
      */
     private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
-        val entities = dao!!.findAll(entityClass::class)
+        val entities = dao!!.findAll()
         return entities.map { entity ->
             var rowData = mutableListOf<Any?>()
-            if (ormType == "Exposed") {
+            if (driverType == "Exposed") {
                 var actualValue: Any?
-                (entityClass as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+                (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                     // Find the corresponding property on the entity object using reflection.
                     val property = entity!!::class.memberProperties.find { it.name == column.name }
                     if (property != null) {
@@ -266,6 +271,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                         value = when (value) {
                             is EntityID<*> -> value.value
                             is IntIdTable -> value.id
+                            is LocalDateTime -> value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                             else -> value
                         }
                         actualValue = value
@@ -274,14 +280,16 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     }
                     rowData.add(actualValue)
                 }
-            } else if (ormType == "JPA") {
-                val properties = entityClass::class.memberProperties.toMutableList()
-                println(properties)
-                println(properties.size)
-
+            } else if (driverType == "JPA") {
+                val properties = entityKClass.memberProperties.toMutableList()
                 properties.forEach { property ->
                     val value = property.call(entity)
-                    rowData.add(Pair(property.name, (value ?: "null")))
+                    val actualValue = if (value is LocalDateTime) {
+                        value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                    } else {
+                        value
+                    }
+                    rowData.add(Pair(property.name, (actualValue ?: "null")))
                 }
             }
 
@@ -380,6 +388,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     val username = params["username"]
                     val password = params["password"]
 
+                    // Check if username and password are provided
                     suspend fun validateUser(user: Any?, password: String?, hashedPassword: String?) {
                         if (user != null && BCrypt.checkpw(password.toString(), hashedPassword)) {
                             val sessionId = UUID.randomUUID().toString()
@@ -410,18 +419,18 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     }
 
                     val user: Any?
-                    when (ormType) {
+                    when (driverType) {
                         "Exposed" -> {
-                            user = dao!!.find(username.toString(), AdminUser::class)
-                            validateUser(user, password, user?.password)
+                            user = dao!!.find(username.toString())
+                            validateUser(user, password, (user as? AdminUser)?.password)
                         }
 
                         "JPA" -> {
-                            user = dao!!.find(username.toString(), JpaAdminUser::class)
-                            validateUser(user, password, user?.password)
+                            user = dao!!.find(username.toString())
+                            validateUser(user, password, (user as? JpaAdminUser)?.password)
                         }
 
-                        else -> throw IllegalStateException("Unsupported ORM type: $ormType")
+                        else -> throw IllegalStateException("Unsupported ORM type: $driverType")
                     }
                 }
             }
@@ -507,7 +516,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     val sessionId = cookies["session_id"]
 
                     if (sessionId != null) {
-                        val columnTypes = getColumnTypes(entityClass)
+                        val columnTypes = getColumnTypes()
                         val fieldsForTemplate =
                             columnTypes.map { props ->
                                 val inputType = props["html_input_type"] as String
@@ -553,9 +562,9 @@ open class BaseView<T : Any>(private val entityClass: T) {
                 post {
                     val params = call.receiveParameters()
                     val dataToSave = mutableMapOf<String, Any>()
-                    var id: Int? = null
-                    if (ormType == "Exposed") {
-                        (entityClass as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+                    val id: Int?
+                    if (driverType == "Exposed") {
+                        (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                             val columnName = column.name
 
                             if (columnName.equals("id", ignoreCase = true)) {
@@ -573,16 +582,68 @@ open class BaseView<T : Any>(private val entityClass: T) {
                                 is JavaLocalDateTimeColumnType -> paramValue?.let { LocalDateTime.parse(it) }
                                 else -> paramValue
                             }
+                            if (value != null) {
+                                if (columnName == "password") {
+                                    // Hash the password before saving
+                                    dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                                } else {
+                                    dataToSave[columnName] = value
+                                }
+                            }
+                        }
+
+                        val instance = dao!!.save(dataToSave)
+                        id = if (instance.instanceOf(entityKClass)) {
+                            (instance as IntEntity).id.value
+                        } else {
+                            throw IllegalStateException("Saved instance is not an IntEntity")
+                        }
+                    } else {
+                        entityKClass.memberProperties.forEach { property ->
+                            val columnName = property.name
+                            if (columnName.equals("id", ignoreCase = true)) {
+                                return@forEach
+                            }
+
+                            val paramValue = params[columnName]
+                            val value: Any? = when (property.returnType.classifier) {
+                                Int::class -> paramValue?.toIntOrNull()
+                                Long::class -> paramValue?.toLongOrNull()
+                                Boolean::class -> paramValue?.toBoolean() ?: false
+                                LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
+                                else -> paramValue
+                            }
 
                             if (value != null) {
                                 dataToSave[columnName] = value
                             }
                         }
-                        val instance = dao!!.save(dataToSave as Map<String, Any>, entityClass::class)
-                        id = if (instance is IntEntity) {
-                            instance.id.value
+                        id = if (driverType == "JPA") {
+                            val constructor = entityKClass.primaryConstructor
+                                ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
+
+                            val args = constructor.parameters
+                                .mapNotNull { param ->
+                                    if (dataToSave.containsKey(param.name)) {
+                                        param to dataToSave[param.name]
+                                    } else {
+                                        null
+                                    }
+                                }
+                                .toMap()
+
+                            val entityInstance = constructor.callBy(args)
+                            val savedInstance = dao!!.save(entityInstance)
+                            val idProperty =
+                                savedInstance::class.memberProperties.find {
+                                    setOf(
+                                        "id",
+                                        "_id"
+                                    ).contains(it.name)
+                                } as? KMutableProperty<*>
+                            idProperty?.getter?.call(savedInstance) as? Int
                         } else {
-                            throw IllegalStateException("Saved instance is not an IntEntity")
+                            throw IllegalStateException("Saved instance is not a valid ${entityKClass.simpleName} type")
                         }
                     }
                     successMessage = "Instance created successfully with ID: $id"
@@ -611,15 +672,19 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     if (sessionId != null) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                        val entity = dao!!.findById(idValue, entityClass::class)
-                        val obj = if (ormType == "Exposed") {
-                            (entityClass as IntEntityClass<IntEntity>).table.columns.associate { column ->
+                        val entity = dao!!.findById(idValue)
+                        val obj = if (driverType == "Exposed") {
+                            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.associate { column ->
                                 val property = entity!!::class.memberProperties.find { it.name == column.name }
                                 val actualValue: Any?
                                 if (property != null) {
                                     // Get the value of the property.
                                     val value = property.call(entity)
-                                    actualValue = if (value is EntityID<*>) value.value else value
+                                    actualValue = when (value) {
+                                        is EntityID<*> -> value.value
+                                        is LocalDateTime -> value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                                        else -> value
+                                    }
                                 } else {
                                     actualValue = null
                                 }
@@ -634,14 +699,19 @@ open class BaseView<T : Any>(private val entityClass: T) {
                                         )
                             }
                         } else {
-                            entityClass::class.memberProperties.associate { property ->
+                            entityKClass.memberProperties.associate { property ->
                                 val columnName = property.name
                                 val value = property.call(entity)
                                 val htmlInputType = getHtmlInputType(property.returnType)
+                                val actualValue = if (value is LocalDateTime) {
+                                    value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                                } else {
+                                    value
+                                }
 
                                 columnName to
                                         mapOf(
-                                            "value" to value,
+                                            "value" to actualValue,
                                             "html_input_type" to htmlInputType,
                                             "original_type" to property.returnType.toString()
                                         )
@@ -714,7 +784,7 @@ open class BaseView<T : Any>(private val entityClass: T) {
                     if (sessionId != null) {
                         val idValue =
                             call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                        val instance = dao!!.delete(idValue, entityClass::class)
+                        val instance = dao!!.delete(idValue)
                         val instanceId: Int?
                         if (instance is IntEntityClass<IntEntity>) {
                             instanceId = instance.table.id.toString().toInt()
@@ -742,13 +812,13 @@ open class BaseView<T : Any>(private val entityClass: T) {
  * A specialised view for database entity administration.
  *
  * EntityView is a concrete implementation of [BaseView] that provides standard admin panel
- * functionality for database entitys. It inherits all the capabilities of BaseView including route
+ * functionality for database entity. It inherits all the capabilities of BaseView including route
  * setup and template rendering for CRUD operations.
  *
  * This class can be extended to customise admin behavior for specific entity classes, or used directly for
  * standard database administration needs.
  */
-class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
+class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClass) {
     /**
      * Sets up all the admin panel views and routes.
      *
@@ -758,7 +828,6 @@ class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
-     * @param entityCompanions Optional list of pairs containing entity classes for the entity
      * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
@@ -766,47 +835,68 @@ class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
         application: Application,
         configuration: Configuration,
         tableNames: MutableList<String>,
-        entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>>?,
-        database: Database?,
+        database: Any?,
         entityManagerFactory: EntityManagerFactory?
     ) {
         super.configuration = configuration
         super.application = application
         super.database = database
-        super.dao = if (database != null && entityCompanions != null) {
-            super.ormType = "Exposed"
-            ExposedDao(database, entityCompanions)
-        } else if (entityManagerFactory != null) {
-            super.ormType = "JPA"
-            JpaDao(entityManagerFactory)
+        super.dao = if (database is Database) {
+            super.driverType = "Exposed"
+            ExposedDao(database, entityKClass)
+        } else if (entityManagerFactory is EntityManagerFactory) {
+            super.driverType = "JPA"
+            JpaDao(entityManagerFactory, entityKClass)
+        } else if (database is MongoDatabase) {
+            super.driverType = "Mongo"
+            MongoDao(database, entityKClass)
         } else {
             throw IllegalArgumentException("Either database or entityManagerFactory must be provided")
         }
+        super.headers = super.setHeaders()
 
         if (configuration.setAuthentication) {
             runBlocking {
-                // Check if the admin user already exists
-                // and create it if it doesn't
-                val existingAdminUser: Any?
+                var existingAdminUser: Any? = null
                 val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
-                if (super.ormType == "Exposed") {
+                if (super.driverType == "Exposed") {
                     // Create the AdminUser table if it doesn't exist
-                    this@EntityView.dao!!.createTable(AdminUser::class)
-                    existingAdminUser = this@EntityView.dao!!.find(
-                        configuration.adminUsername,
-                        AdminUser::class
-                    )
+                    val dao = ExposedDao(database as Database, AdminUser::class)
+                    dao.createTable()
+
+                    // Create the admin user if it doesn't exist
+                    existingAdminUser = dao.find(configuration.adminUsername)
                     if (existingAdminUser == null) {
                         val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
-                        this@EntityView.dao!!.save(entity, AdminUser::class)
+                        dao.save(entity)
                     }
                 } else {
-                    // Create the JpaAdminUser table if it doesn't exist
-                    this@EntityView.dao!!.createTable(JpaAdminUser::class)
-                    existingAdminUser = this@EntityView.dao!!.find(configuration.adminUsername, JpaAdminUser::class)
+                    // Create the AdminUser table if it doesn't exist
+                    if (driverType == "JPA") {
+                        val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
+                        dao.createTable()
+                        existingAdminUser = dao.find(configuration.adminUsername)
+                    } else if (driverType == "Mongo") {
+                        val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
+                        dao.createTable()
+                        existingAdminUser = dao.find(configuration.adminUsername)
+                    }
+
+                    // Create the admin user if it doesn't exist
                     if (existingAdminUser == null) {
-                        val entity = JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
-                        this@EntityView.dao!!.save(entity)
+                        if (driverType == "JPA") {
+                            val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
+                            val entity = JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
+                            dao.save(entity)
+                        } else if (driverType == "Mongo") {
+                            val entity = MongoAdminUser(
+                                ObjectId(),
+                                username = configuration.adminPassword,
+                                password = hashedPassword
+                            )
+                            val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
+                            dao.save(entity)
+                        }
                     }
                 }
 
@@ -823,18 +913,17 @@ class EntityView<T : Any>(val entityClass: T) : BaseView<T>(entityClass) {
         )
 
         // Determine the entity name based on the type of entity class provided
-        val entity = when (super.ormType) {
-            "Exposed" -> (this.entityClass as IntEntityClass<IntEntity>).table.tableName
-            "JPA" -> this.entityClass::class.simpleName
+        val entity = when (super.driverType) {
+            "Exposed" -> (this.entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName
+            "JPA", "Mongo" -> this.entityKClass.simpleName
                 ?: throw IllegalArgumentException("Entity must have a simple name")
-
             else -> throw IllegalArgumentException("Entity must be an IntEntityClass or annotated with @Entity")
         }
 
         // Use the entity name to determine the path for delete, list, create, and details views
-        val entityPath = when (super.ormType) {
-            "Exposed" -> (this.entityClass as IntEntityClass<IntEntity>).table.tableName.lowercase()
-            "JPA" -> this.entityClass::class.simpleName?.lowercase()
+        val entityPath = when (super.driverType) {
+            "Exposed" -> (this.entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName.lowercase()
+            "JPA", "Mongo" -> this.entityKClass.simpleName?.lowercase()
                 ?: throw IllegalArgumentException("Entity must have a simple name")
 
             else -> throw IllegalArgumentException("Entity must be an IntEntityClass or annotated with @Entity")

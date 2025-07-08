@@ -11,10 +11,10 @@ class JpaAdminUser(
     var id: Int? = null,
 
     @Column(name = "username", length = 255, unique = true, nullable = false)
-    var username: String = "",
+    var username: String,
 
     @Column(name = "password", length = 255, nullable = false)
-    var password: String = "",
+    var password: String,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", length = 15, nullable = false)

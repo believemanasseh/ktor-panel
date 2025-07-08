@@ -2,9 +2,17 @@ plugins {
     id("jacoco")
     alias(libs.plugins.jvm)
     alias(libs.plugins.ktor) apply false
-    alias(libs.plugins.kotlin.plugin.serialization) apply false
+    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.jpa)
+    alias(libs.plugins.allopen)
     `java-library`
     `maven-publish`
+}
+
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.Embeddable")
+    annotation("jakarta.persistence.MappedSuperclass")
 }
 
 group = "xyz.daimones"
@@ -18,6 +26,10 @@ dependencies {
     // Internal dependencies
     implementation(libs.jbcrypt)
     implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.serialization.core)
+    implementation(platform(libs.mongodb.driver.bom))
+    implementation(libs.mongodb.driver.kotlin.coroutine)
+    implementation(libs.bson.kotlinx)
 
     // Test dependencies
     testImplementation(libs.junit.jupiter.engine)
