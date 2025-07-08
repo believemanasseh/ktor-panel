@@ -48,7 +48,7 @@ import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.EntityView
 import org.jetbrains.exposed.sql.Database
 
-fun Application.configureAdminPanel() {
+fun Application.configureAdminPanel(database: Database) {
     // Create admin configuration 
     val config = Configuration(
         url = "admin",           // Access at /admin
@@ -96,7 +96,7 @@ fun Application.module() {
     }
 
     // Add admin panel
-    configureAdminPanel()
+    configureAdminPanel(database)
 }
 ```
 

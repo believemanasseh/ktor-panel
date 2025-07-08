@@ -60,7 +60,7 @@ Basic Setup
    import xyz.daimones.ktor.panel.EntityView
    import org.jetbrains.exposed.sql.Database
 
-   fun Application.configureAdminPanel() {
+   fun Application.configureAdminPanel(database: Database) {
        // Create admin configuration
        val config = Configuration(
            url = "admin",           // Access at /admin
@@ -109,7 +109,7 @@ Add to your Ktor application
        }
 
        // Add admin panel
-       configureAdminPanel()
+       configureAdminPanel(database)
    }
 
 Customisation
