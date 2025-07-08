@@ -25,7 +25,7 @@ class ExposedTest {
         application {
             val configuration = Configuration(setAuthentication = false)
             val admin = Admin(this, configuration, database)
-            admin.addView(EntityView(AdminUser))
+            admin.addView(EntityView(AdminUser::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
         }
     }

@@ -34,7 +34,7 @@ class JpaTest {
             val configuration = Configuration(setAuthentication = false)
             val admin =
                 Admin(application = this, configuration = configuration, entityManagerFactory = entityManagerFactory)
-            admin.addView(EntityView(JpaAdminUser()))
+            admin.addView(EntityView(JpaAdminUser::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
         }
     }
