@@ -23,7 +23,12 @@ fun Application.configureDatabases(): EntityManagerFactory {
 
     // Create an initial user entity
     val hashedPassword = BCrypt.hashpw("password", BCrypt.gensalt())
-    val entity = User(email = "test@email.com", firstName = "test", lastName = "user", password = hashedPassword)
+    val entity = User(
+        email = "test@email.com",
+        firstName = "test",
+        lastName = "user",
+        password = hashedPassword
+    )
     val entityManager = entityManagerFactory.createEntityManager()
     try {
         entityManager.transaction.begin()

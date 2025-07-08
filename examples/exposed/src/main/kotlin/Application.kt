@@ -16,5 +16,5 @@ fun Application.module() {
     // Configure and initialise admin interface library
     val configuration = Configuration(setAuthentication = true)
     val admin = Admin(this, configuration, database)
-    admin.addView(EntityView(User))
+    admin.addView(EntityView(User::class))
 }

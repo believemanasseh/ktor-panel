@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.ktor)
-    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.kotlin.plugin.serialization) apply false
+    alias(libs.plugins.jpa) apply false
+    alias(libs.plugins.allopen) apply false
 }
 
 group = "com.example"

@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.mindrot.jbcrypt.BCrypt
+import java.time.LocalDateTime
 
 fun Application.configureDatabases(): Database {
     val database = Database.connect(url = "jdbc:h2:mem:exposed_example;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
@@ -16,6 +17,8 @@ fun Application.configureDatabases(): Database {
             firstName = "test"
             lastName = "user"
             password = hashedPassword
+            created = LocalDateTime.now()
+            modified = LocalDateTime.now()
         }
     }
 
