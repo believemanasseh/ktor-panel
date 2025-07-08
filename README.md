@@ -49,7 +49,7 @@ import xyz.daimones.ktor.panel.EntityView
 import org.jetbrains.exposed.sql.Database
 
 fun Application.configureAdminPanel() {
-    // Create admin configuration
+    // Create admin configuration 
     val config = Configuration(
         url = "admin",           // Access at /admin
         adminName = "My App Admin"
@@ -58,9 +58,9 @@ fun Application.configureAdminPanel() {
     // Initialise admin panel
     val admin = Admin(this, config, database)
 
-    // Add your entities to the admin panel
-    admin.addView(EntityView(User))
-    admin.addView(EntityView(Product))
+    // Add your entities to the admin panel 
+    admin.addView(EntityView(User::class))
+    admin.addView(EntityView(Product::class))
 }
 ```
 
@@ -167,5 +167,8 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 
 - [Ktor](https://ktor.io/) - Kotlin async web framework
 - [Exposed](https://github.com/JetBrains/Exposed) - Kotlin SQL library
+- [Hibernate](https://hibernate.org/orm/documentation/7.0/) - Java ORM library
+- [MongoDB Kotlin Driver](https://www.mongodb.com/docs/drivers/kotlin/coroutine/current/quick-start/) - Official MongoDB
+  driver for Kotlin
 - [Mustache](https://github.com/spullara/mustache.java) - Logic-less templates
 - [Flask-Admin](https://github.com/flask-admin/flask-admin) - Inspiration for this project

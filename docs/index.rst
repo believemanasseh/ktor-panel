@@ -71,8 +71,8 @@ Basic Setup
        val admin = Admin(this, config, database)
 
        // Add your entities to the admin panel
-       admin.addView(EntityView(User))
-       admin.addView(EntityView(Product))
+       admin.addView(EntityView(User::class))
+       admin.addView(EntityView(Product::class))
    }
 
 Add to your Ktor application
@@ -182,6 +182,9 @@ Acknowledgments
 -  `Ktor <https://ktor.io/>`__ - Kotlin async web framework
 -  `Exposed <https://github.com/JetBrains/Exposed>`__ - Kotlin SQL
    library
+-  `Hibernate <https://hibernate.org/orm/documentation/7.0/>`__ - Java
+   ORM library
+-  `MongoDB Kotlin Driver <https://www.mongodb.com/docs/drivers/kotlin/coroutine/current/quick-start/>`__ - Official MongoDB driver for Kotlin
 -  `Mustache <https://github.com/spullara/mustache.java>`__ - Logic-less
    templates
 -  `Flask-Admin <https://github.com/flask-admin/flask-admin>`__ -
