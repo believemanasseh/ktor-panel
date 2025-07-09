@@ -35,11 +35,6 @@ class MongoTest {
         database = mongoClient.getDatabase("test")
     }
 
-    @AfterEach
-    fun teardownMongodb() {
-        running.close()
-    }
-
     @Test
     fun testAdminInit() = testApplication {
         application {
@@ -49,5 +44,10 @@ class MongoTest {
             admin.addView(EntityView(MongoAdminUser::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
         }
+    }
+
+    @AfterEach
+    fun teardownMongodb() {
+        running.close()
     }
 }
