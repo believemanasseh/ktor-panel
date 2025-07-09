@@ -10,7 +10,6 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
 import java.io.Reader
-import kotlin.reflect.KClass
 import kotlin.reflect.full.companionObjectInstance
 
 /**
@@ -42,14 +41,6 @@ class Admin(
      * Used for generating navigation and displaying available tables in the admin interface.
      */
     private val tableNames: MutableList<String> = mutableListOf()
-
-    /**
-     * List of entity classes registered with this admin panel.
-     * Each pair contains the KClass of the entity and its corresponding IntEntityClass.
-     * This is used for type-safe database operations and entity management.
-     */
-    private val entityCompanions: MutableList<Pair<KClass<out IntEntityClass<IntEntity>>, IntEntityClass<IntEntity>>> =
-        mutableListOf()
 
     /**
      * Initialises the admin panel by checking if the Mustache plugin is installed.
