@@ -15,6 +15,7 @@ jakarta-persistence = "3.2.0"
 kotlin-reflect = "2.2.0"
 mongodb-driver-bom = "5.5.1"
 kotlinx-serialization-core = "1.6.0"
+de-flapdoodle-embed-mongo = "4.20.1"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
@@ -43,6 +44,7 @@ mongodb-driver-bom = { module = "org.mongodb:mongodb-driver-bom", version.ref = 
 mongodb-driver-kotlin-coroutine = { module = "org.mongodb:mongodb-driver-kotlin-coroutine" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization-core" }
 bson-kotlinx = { module = "org.mongodb:bson-kotlinx" }
+de-flapdoodle-embed-mongo = { module = "de.flapdoodle.embed:de.flapdoodle.embed.mongo", version.ref = "de-flapdoodle-embed-mongo" }
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

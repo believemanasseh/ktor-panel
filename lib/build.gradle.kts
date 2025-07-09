@@ -31,17 +31,17 @@ dependencies {
     implementation(libs.mongodb.driver.kotlin.coroutine)
     implementation(libs.bson.kotlinx)
 
-    // Test dependencies
-    testImplementation(libs.junit.jupiter.engine)
+    // Internal test dependencies
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.logback.classic)
-    testImplementation(libs.h2)
-    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.hibernate.core)
+    testImplementation(libs.de.flapdoodle.embed.mongo)
 
-    // Test runtime dependencies
-    testRuntimeOnly(libs.hibernate.core)
+    // Runtime-only test dependencies
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.logback.classic)
+    testRuntimeOnly(libs.h2)
+    testRuntimeOnly(libs.junit.platform.launcher)
 
     // These dependencies are exported to consumers,
     // that is to say found on their compile classpath.
