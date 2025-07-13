@@ -818,6 +818,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
  *
  * This class can be extended to customise admin behavior for specific entity classes, or used directly for
  * standard database administration needs.
+ * @see BaseView
  */
 class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClass) {
     /**
@@ -831,6 +832,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
      * @param tableNames List of table names to be managed in the admin panel
      * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
+     * @throws IllegalArgumentException if neither database nor entityManagerFactory is provided
      */
     fun configurePageViews(
         application: Application,
