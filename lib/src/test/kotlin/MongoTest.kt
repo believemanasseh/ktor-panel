@@ -7,11 +7,11 @@ import de.flapdoodle.embed.mongo.transitions.Mongod
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
 import de.flapdoodle.reverse.TransitionWalker
 import io.ktor.server.testing.*
-import org.junit.jupiter.api.AfterEach
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.EntityView
 import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,7 +46,7 @@ class MongoTest {
         }
     }
 
-    @AfterEach
+    @AfterTest
     fun teardownMongodb() {
         running.close()
     }
