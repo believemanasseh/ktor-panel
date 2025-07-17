@@ -4,8 +4,9 @@ plugins {
 }
 
 rootProject.name = "ktor-panel"
-include("lib", "exposed-example", "hibernate-example")
+include("lib", "exposed-example", "hibernate-example", "mongo-example")
 
 // Map the project names to their actual directories
 project(":exposed-example").projectDir = file("examples/exposed")
 project(":hibernate-example").projectDir = file("examples/hibernate")
+project(":mongo-example").projectDir = file("examples/mongo")
