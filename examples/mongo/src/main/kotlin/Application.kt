@@ -17,13 +17,7 @@ fun Application.module() {
     configureSerialization()
     configureRouting()
     var database: MongoDatabase? = null
-    runBlocking(Dispatchers.IO) {
-        val res = async {
-            configureDatabase()
-        }
-        database = res.await()
-        println("Database configured: ${database?.name}")
-    }
+    runBlocking(Dispatchers.IO) { database = async { configureDatabase() }.await() }
     val configuration = Configuration(setAuthentication = false)
     val admin =
         Admin(this, configuration, database as MongoDatabase)
