@@ -7,6 +7,7 @@ import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
+import org.bson.types.ObjectId
 import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
 import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
@@ -25,15 +26,15 @@ class MongoDao<T : Any>(private val database: MongoDatabase, private val entityK
      * The collection name is derived from the simple name of the entity class.
      */
     private val collection: MongoCollection<T> =
-        database.getCollection(entityKClass.java.simpleName.toString(), entityKClass.java)
+        database.getCollection(entityKClass.java.simpleName.toString().lowercase(), entityKClass.java)
 
     /** Finds an entity by its ID.
      *
      * @param id The ID of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override suspend fun findById(id: Int): T {
-        val document = collection.find(Filters.eq("_id", id)).first()
+    override suspend fun findById(id: Any): T {
+        val document = collection.find(Filters.eq("_id", ObjectId(id.toString()))).first()
         return document
     }
 

@@ -65,9 +65,9 @@ class JpaDao<T : Any>(private val entityManagerFactory: EntityManagerFactory, pr
      * @param id The primary key of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override suspend fun findById(id: Int): T? {
+    override suspend fun findById(id: Any): T? {
         return withContext(Dispatchers.IO) {
-            execute { entityManager -> entityManager.find(entityKClass.java, id) }
+            execute { entityManager -> entityManager.find(entityKClass.java, id.toString().toInt()) }
         }
     }
 

@@ -9,8 +9,7 @@ import java.time.LocalDateTime
 @Serializable
 data class User(
     @SerialName("_id")
-    @Contextual
-    val id: ObjectId,
+    @Contextual val id: ObjectId? = null,
     val email: String,
     val firstName: String? = null,
     val lastName: String? = null,

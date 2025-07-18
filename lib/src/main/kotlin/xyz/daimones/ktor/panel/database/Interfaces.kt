@@ -13,7 +13,9 @@ interface DatabaseAccessObjectInterface<T> {
      * @param id The primary key of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    suspend fun findById(id: Int): T?
+    suspend fun findById(id: Any): T? {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Finds all entities of a given type.

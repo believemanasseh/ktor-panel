@@ -36,6 +36,7 @@ import java.util.*
 import kotlin.collections.set
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
@@ -116,6 +117,25 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
      */
     fun setHeaders(): List<String> {
+        fun <T> reorderProperties(
+            properties: MutableList<KProperty1<T, *>>, idProperty: KProperty1<T, *>?,
+            createdProperty: KProperty1<T, *>?,
+            modifiedProperty: KProperty1<T, *>?
+        ) {
+            if (idProperty != null) {
+                properties.remove(idProperty)
+                properties.add(0, idProperty)
+            }
+            if (createdProperty != null) {
+                properties.remove(createdProperty)
+                properties.add(properties.size, createdProperty)
+            }
+            if (modifiedProperty != null) {
+                properties.remove(modifiedProperty)
+                properties.add(properties.size, modifiedProperty)
+            }
+        }
+
         return if (driverType == DriverType.EXPOSED) {
             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { it.name }
         } else if (driverType == DriverType.JPA) {
@@ -131,7 +151,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "creation_date",
                     "created_on"
                 )
-                if (p.javaField?.isAnnotationPresent(Column::class.java) == true) {
+                if (p.javaField?.name == "") {
                     names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
                 } else {
                     false
@@ -147,27 +167,43 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "last_modified",
                     "last_updated"
                 )
-                if (p.javaField?.isAnnotationPresent(Column::class.java) == true) {
+                if (p.javaField?.name == "") {
                     names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
                 } else {
                     false
                 }
             }
-            if (idProperty != null) {
-                properties.remove(idProperty)
-                properties.add(0, idProperty)
-            }
-            if (createdProperty != null) {
-                properties.remove(createdProperty)
-                properties.add(properties.size, createdProperty)
-            }
-            if (modifiedProperty != null) {
-                properties.remove(modifiedProperty)
-                properties.add(properties.size, modifiedProperty)
-            }
+            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
             properties.map { it.name }
         } else if (driverType == DriverType.MONGO) {
-            entityKClass.memberProperties.map { it.name }
+            val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
+            val idProperty = properties.find { p -> p.javaField?.name == "id" }
+            val createdProperty = properties.find { p ->
+                val names = setOf(
+                    "created",
+                    "created_at",
+                    "createdAt",
+                    "creationDate",
+                    "createdOn",
+                    "creation_date",
+                    "created_on"
+                )
+                names.contains(p.javaField?.name)
+            }
+            val modifiedProperty = properties.find { p ->
+                val names = setOf(
+                    "modified",
+                    "updated_at",
+                    "updatedAt",
+                    "lastModified",
+                    "lastUpdated",
+                    "last_modified",
+                    "last_updated"
+                )
+                names.contains(p.javaField?.name)
+            }
+            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
+            properties.map { it.name }
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -281,7 +317,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     }
                     rowData.add(actualValue)
                 }
-            } else if (driverType == DriverType.JPA) {
+            } else {
                 val properties = entityKClass.memberProperties.toMutableList()
                 properties.forEach { property ->
                     val value = property.call(entity)
@@ -671,8 +707,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val sessionId = cookies["session_id"]
 
                     if (sessionId != null) {
-                        val idValue =
-                            call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
+                        val idValue: Any = try {
+                            call.parameters["id"]?.toInt()
+                                ?: throw IllegalArgumentException("ID parameter is required")
+                        } catch (e: NumberFormatException) {
+                            call.parameters["id"] ?: throw IllegalArgumentException("ObjectID parameter is required")
+                        }
                         val entity = dao!!.findById(idValue)
                         val obj = if (driverType == DriverType.EXPOSED) {
                             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.associate { column ->

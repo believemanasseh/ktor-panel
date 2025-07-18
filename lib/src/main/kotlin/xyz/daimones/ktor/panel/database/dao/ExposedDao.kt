@@ -93,10 +93,10 @@ class ExposedDao<T : Any>(
      * @param id The primary key of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    override suspend fun findById(id: Int): T? {
+    override suspend fun findById(id: Any): T? {
         val result = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
-                companion.findById(id)
+                companion.findById(id.toString().toInt())
             }
         }
         @Suppress("UNCHECKED_CAST")
