@@ -7,7 +7,6 @@ import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.transitions.ImmutableMongod
 import de.flapdoodle.embed.mongo.transitions.Mongod
 import io.ktor.server.application.*
-
 import org.mindrot.jbcrypt.BCrypt
 
 suspend fun Application.configureDatabase(): MongoDatabase {
