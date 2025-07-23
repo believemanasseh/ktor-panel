@@ -5,7 +5,7 @@ Ktor Panel
 
 A lightweight, customisable admin interface library for Ktor
 applications. Ktor Panel provides a simple way to manage your database
-models through an intuitive and secure web interface with minimal configuration.
+entities through an intuitive and secure web interface with minimal configuration.
 
 .. toctree::
    :maxdepth: 2
