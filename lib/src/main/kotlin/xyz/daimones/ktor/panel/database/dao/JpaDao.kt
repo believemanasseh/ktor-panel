@@ -5,12 +5,12 @@ import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Persistence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 import kotlin.reflect.KClass
 
 /**
- * Implementation of the DatabaseAccessObjectInterface using JPA. This class provides methods to
+ * Implementation of the DataAccessObjectInterface using JPA. This class provides methods to
  * interact with the database using JPA's EntityManager. It supports basic CRUD operations and can
  * be extended for more complex queries.
  *
@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
  * @property entityKClass The KClass of the entity being managed by this DAO.
  */
 class JpaDao<T : Any>(private val entityManagerFactory: EntityManagerFactory, private val entityKClass: KClass<T>) :
-    DatabaseAccessObjectInterface<T> {
+    DataAccessObjectInterface<T> {
     /**
      * Executes a read operation using the provided block of code. This method creates an
      * EntityManager, executes the block, and ensures the EntityManager is closed afterwards.

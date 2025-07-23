@@ -23,7 +23,7 @@ import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.json.JsonBColumnType
 import org.mindrot.jbcrypt.BCrypt
-import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.DriverType
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
@@ -75,7 +75,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * The data access object interface for database operations. This is set during
      * [EntityView.configurePageViews] and used to interact with the database.
      */
-    protected var dao: DatabaseAccessObjectInterface<T>? = null
+    protected var dao: DataAccessObjectInterface<T>? = null
 
     /** ORM/ODM type used for the entity class. */
     protected lateinit var driverType: DriverType

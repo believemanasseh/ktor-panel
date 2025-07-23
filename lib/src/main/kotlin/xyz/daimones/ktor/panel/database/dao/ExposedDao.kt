@@ -8,7 +8,7 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
-import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
@@ -16,7 +16,7 @@ import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
 
 /**
- * ExposedDao is an implementation of DatabaseAccessObjectInterface using Exposed ORM.
+ * ExposedDao is an implementation of DataAccessObjectInterface using Exposed ORM.
  * It provides methods to interact with the database, including CRUD operations and table creation.
  * 
  * @property database The Exposed Database instance used for transactions.
@@ -25,7 +25,7 @@ import kotlin.reflect.full.memberProperties
 class ExposedDao<T : Any>(
     private val database: Database,
     private val entityKClass: KClass<T>
-) : DatabaseAccessObjectInterface<T> {
+) : DataAccessObjectInterface<T> {
     /** Companion object instance for the entity */
     private val companion = (entityKClass.companionObjectInstance as? IntEntityClass<IntEntity>)
         ?: throw IllegalArgumentException("Provided KClass must have a companion object that is an IntEntityClass")

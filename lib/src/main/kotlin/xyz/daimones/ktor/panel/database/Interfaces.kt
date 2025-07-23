@@ -1,11 +1,11 @@
 package xyz.daimones.ktor.panel.database
 
 /**
- * Interface for database access objects (DAOs).
+ * Interface for data access objects (DAOs).
  * This interface defines the methods that any DAO should implement to interact with the database.
  * It is designed to be generic, allowing for different entity types to be handled.
  */
-interface DatabaseAccessObjectInterface<T> {
+interface DataAccessObjectInterface<T> {
     /**
      * Finds an entity by its primary key.
      * This is a method that can be used to find any entity type.

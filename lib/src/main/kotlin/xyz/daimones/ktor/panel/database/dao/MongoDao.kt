@@ -8,19 +8,19 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import org.bson.types.ObjectId
-import xyz.daimones.ktor.panel.database.DatabaseAccessObjectInterface
+import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 
 /**
- * MongoDao is an implementation of DatabaseAccessObjectInterface using MongoDB.
+ * MongoDao is an implementation of DataAccessObjectInterface using MongoDB.
  * It provides methods to interact with the database, including CRUD operations and collection management.
  *
  * @property database The MongoDatabase instance used for operations.
  * @property entityKClass The KClass of the entity being managed.
  */
 class MongoDao<T : Any>(private val database: MongoDatabase, private val entityKClass: KClass<T>) :
-    DatabaseAccessObjectInterface<T> {
+    DataAccessObjectInterface<T> {
     /**
      * The MongoDB collection for the entity type.
      * The collection name is derived from the simple name of the entity class.
