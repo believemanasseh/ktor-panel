@@ -12,6 +12,7 @@ entities through an intuitive and secure web interface with minimal configuratio
    :caption: Guides
 
    authentication
+   configuration
 
 Installation
 ------------
