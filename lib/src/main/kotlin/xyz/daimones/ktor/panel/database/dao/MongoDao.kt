@@ -86,18 +86,6 @@ class MongoDao<T : Any>(private val database: MongoDatabase, private val entityK
     }
 
     /**
-     * This method is not supported in MongoDao.
-     *
-     * @param data The data to save, which is a map.
-     * @return The saved entity of type T.
-     * @throws NotImplementedError Always throws this error as this operation is not supported
-     * @see save(entity: T) Use this method instead with an entity instance
-     */
-    override suspend fun save(data: Map<String, Any>): T {
-        throw NotImplementedError("MongoDao requires an entity instance. Use save(instance: T) instead")
-    }
-
-    /**
      * Updates an existing entity.
      * This method uses the entity's ID to find and update the entity in the collection.
      *
@@ -120,19 +108,6 @@ class MongoDao<T : Any>(private val database: MongoDatabase, private val entityK
         }
         @Suppress("UNCHECKED_CAST")
         return (result as UpdateResult) as T
-    }
-
-    /**
-     * This method is not supported in MongoDao.
-     *
-     * @param data The data to update, which is a map.
-     * @return The updated entity of type T.
-     * @throws NotImplementedError Always throws this error as this operation is not supported
-     * @see update(entity: T) Use this method instead with an entity instance
-     */
-    override suspend fun update(data: Map<String, Any>): T {
-        throw NotImplementedError("MongoDao requires an entity instance. Use update(instance: T) instead")
-
     }
 
     /**

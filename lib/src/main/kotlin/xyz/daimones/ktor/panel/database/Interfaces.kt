@@ -13,9 +13,7 @@ interface DataAccessObjectInterface<T> {
      * @param id The primary key of the entity to find.
      * @return The found entity of type T, or null if not found.
      */
-    suspend fun findById(id: Any): T? {
-        throw NotImplementedError("This method is not implemented for this DAO.")
-    }
+    suspend fun findById(id: Any): T?
 
     /**
      * Finds all entities of a given type.
@@ -41,7 +39,9 @@ interface DataAccessObjectInterface<T> {
      * @param data The data to save, which is a map.
      * @return The saved entity of type T.
      */
-    suspend fun save(data: Map<String, Any>): T
+    suspend fun save(data: Map<String, Any>): T {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Saves a new entity.
@@ -50,7 +50,9 @@ interface DataAccessObjectInterface<T> {
      * @param entity The entity to save.
      * @return The saved entity.
      */
-    suspend fun save(entity: T): T
+    suspend fun save(entity: T): T {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Updates an existing entity.
@@ -59,7 +61,9 @@ interface DataAccessObjectInterface<T> {
      * @param data The data to update, which is a map.
      * @return The updated entity of type T.
      */
-    suspend fun update(data: Map<String, Any>): T
+    suspend fun update(data: Map<String, Any>): T {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Updates an existing entity.
@@ -68,7 +72,9 @@ interface DataAccessObjectInterface<T> {
      * @param entity The entity to update.
      * @return The updated entity.
      */
-    suspend fun update(entity: T): T
+    suspend fun update(entity: T): T {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Deletes an entity by its primary key.

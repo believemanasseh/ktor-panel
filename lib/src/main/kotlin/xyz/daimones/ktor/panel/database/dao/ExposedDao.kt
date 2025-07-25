@@ -157,17 +157,6 @@ class ExposedDao<T : Any>(
     }
 
     /**
-     * This method is not supported in ExposedDao.
-     * 
-     * @param entity The entity to update.
-     * @return The updated entity.
-     * @throws NotImplementedError if this method is called directly.
-     */
-    override suspend fun update(entity: T): T {
-        throw NotImplementedError("ExposedDao requires a map and entity class. Use update(data: Map<String, Any>) instead")
-    }
-
-    /**
      * Saves a new entity. This method uses a map of field names to values to create the entity.
      * 
      * @param data A map of field names to values to save.
@@ -181,17 +170,6 @@ class ExposedDao<T : Any>(
         }
         @Suppress("UNCHECKED_CAST")
         return savedEntity as T
-    }
-
-    /**
-     * This method is not supported in ExposedDao.
-     * 
-     * @param entity The entity to save.
-     * @return The saved entity.
-     * @throws NotImplementedError if this method is called directly.
-     */
-    override suspend fun save(entity: T): T {
-        throw NotImplementedError("ExposedDao requires a map and entity class. Use save(data: Map<String, Any>) instead.")
     }
 
     /**

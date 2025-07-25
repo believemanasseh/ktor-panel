@@ -119,18 +119,6 @@ class JpaDao<T : Any>(private val entityManagerFactory: EntityManagerFactory, pr
     }
 
     /**
-     * This method is not supported in JpaDao.
-     *
-     * @param data Map of property names to values to save
-     * @return Entity instance of type T
-     * @throws NotImplementedError Always throws this error as this operation is not supported
-     * @see save(entity: T) Use this method instead with an entity instance
-     */
-    override suspend fun save(data: Map<String, Any>): T {
-        throw NotImplementedError("JpaDao requires an entity instance. Use save(entity: T) instead")
-    }
-
-    /**
      * Updates an existing entity. This method uses the EntityManager to merge the entity, which can
      * be used for both saving and updating.
      *
@@ -139,20 +127,6 @@ class JpaDao<T : Any>(private val entityManagerFactory: EntityManagerFactory, pr
      */
     override suspend fun update(entity: T): T {
         return withContext(Dispatchers.IO) { executeInTransaction { entityManager -> entityManager.merge(entity) } }
-    }
-
-    /**
-     * This method is not supported in JpaDao.
-     *
-     * @param data Map of property names to values to save
-     * @return Entity instance of type T
-     * @throws NotImplementedError Always throws this error as this operation is not supported
-     * @see update(entity: T) Use this method instead with an entity instance
-     */
-    override suspend fun update(data: Map<String, Any>): T {
-        throw NotImplementedError(
-            "JpaDao requires an entity instance. Use update(entity: T) instead"
-        )
     }
 
     /**
