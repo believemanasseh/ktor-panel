@@ -1,4 +1,4 @@
-Usage Guide for Ktor Panel
+Usage Guide
 =============
 
 Ktor Panel supports multiple Object-Relational Mappers (ORMs) and Object-Document Mappers (ODMs) for seamless integration with various databases.
