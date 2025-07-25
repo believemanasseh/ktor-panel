@@ -18,7 +18,6 @@ class JpaTest {
         entityManagerFactory =
             HibernatePersistenceConfiguration("AdminUsers")
                 .managedClass(JpaAdminUser::class.java)
-                .managedClass(JpaAdminUser::class.java)
                 .jdbcUrl("jdbc:h2:mem:hibernate_example;DB_CLOSE_DELAY=-1")
                 .jdbcDriver("org.h2.Driver")
                 .jdbcCredentials("sa", "")
