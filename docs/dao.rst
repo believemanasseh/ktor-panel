@@ -1,5 +1,5 @@
 Custom DAOs
------------
+===========
 
 You can implement your own Data Access Object (DAO) layer by extending the ``DataAccessObjectInterface`` interface.
 
