@@ -218,24 +218,51 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @return A list of maps containing column names, HTML input types, and original types
      * @throws IllegalArgumentException if the entity is not an IntEntity or does not have the @Entity annotation
      */
-    private fun getColumnTypes(): List<Map<String, String>> {
+    private fun getColumnTypes(): List<Map<String, Any?>> {
         return if (driverType == DriverType.EXPOSED) {
             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { column ->
                 val htmlInputType = getHtmlInputType(column)
+                val enumValues: Array<out Enum<*>>? = when (column.columnType) {
+                    is EnumerationColumnType<*> -> {
+                        (column.columnType as EnumerationColumnType<*>).klass.java.enumConstants
+                    }
+
+                    is EnumerationNameColumnType<*> -> {
+                        (column.columnType as EnumerationNameColumnType<*>).klass.java.enumConstants
+                    }
+
+                    else -> {
+                        null
+                    }
+                }
                 mapOf(
                     "name" to column.name,
                     "html_input_type" to htmlInputType,
-                    "original_type" to column.columnType::class.simpleName.orEmpty()
+                    "original_type" to column.columnType::class.simpleName.orEmpty(),
+                    "enum_values" to enumValues?.map { enumValue -> enumValue.name }
                 )
             }
         } else if (driverType == DriverType.JPA) {
             entityKClass.memberProperties.map { property ->
                 val columnName = property.name
                 val htmlInputType = getHtmlInputType(property.returnType)
+                val enumValues: Array<out Any>? = when (property.returnType.classifier) {
+                    is KClass<*> -> {
+                        val kClass = property.returnType.classifier as KClass<*>
+                        if (kClass.java.isEnum) {
+                            kClass.java.enumConstants
+                        } else {
+                            null
+                        }
+                    }
+
+                    else -> null
+                }
                 mapOf(
                     "name" to columnName,
                     "html_input_type" to htmlInputType,
-                    "original_type" to property.returnType.toString()
+                    "original_type" to property.returnType.toString(),
+                    "enum_values" to enumValues
                 )
             }
         } else {
@@ -271,14 +298,16 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 else -> "text" // Default fallback
             }
         } else if (column is KType) {
-            when (column.classifier) {
-                String::class -> "text"
-                Int::class, Long::class, Short::class -> "number"
-                Float::class, Double::class -> "number"
-                Boolean::class -> "checkbox"
-                Date::class -> "date"
-                LocalDateTime::class -> "datetime-local"
-                else -> "text" // Default fallback
+            val classifier = column.classifier
+            when {
+                classifier == String::class -> "text"
+                classifier == Int::class || classifier == Long::class || classifier == Short::class -> "number"
+                classifier == Float::class || classifier == Double::class -> "number"
+                classifier == Boolean::class -> "checkbox"
+                classifier == Date::class -> "date"
+                classifier == LocalDateTime::class -> "datetime-local"
+                classifier is KClass<*> && classifier.java.isEnum -> "select"
+                else -> "text"
             }
         } else {
             "text" // Default fallback for unsupported types
@@ -558,7 +587,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             columnTypes.map { props ->
                                 val inputType = props["html_input_type"] as String
                                 val originalType = props["original_type"] ?: ""
-                                val isReadOnly = props["name"].equals("id", ignoreCase = true)
+                                val isReadOnly = (props["name"] as String).equals("id", ignoreCase = true)
 
                                 mapOf(
                                     "name" to props["name"],
@@ -781,11 +810,23 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_general_input" to
                                             !listOf("checkbox", "select", "textarea", "hidden")
                                                 .contains(inputType)
-                                    // TODO: For "is_select", we need to add an "options" list
-                                    // to this map
-                                    // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
-                                    // to "Option 1", "selected" to true/false))
                                 )
+
+                                if (inputType == "select") {
+                                    @Suppress("UNCHECKED_CAST")
+                                    val enumValues = props["enum_values"] as? List<String>
+                                    if (enumValues != null) {
+                                        mapOf(
+                                            "options" to enumValues.map { value ->
+                                                mapOf(
+                                                    "value" to value,
+                                                    "text" to value,
+                                                    "selected" to (props["value"] == value)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
                             }
 
                         data["fields"] = fieldsForTemplate
