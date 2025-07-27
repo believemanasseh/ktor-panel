@@ -51,7 +51,9 @@ Define your JPA entities and register them:
    )
 
    fun Application.module() {
-       val entityManagerFactory = HibernatePersistenceConfiguration("products")
+       val config = HibernatePersistenceConfiguration("Products")
+       registerAdminEntity(config) // Registers library's admin entity
+       val entityManagerFactory = config
            .managedClass(Product::class.java)
            .jdbcUrl("jdbc:h2:mem:hibernate_example;DB_CLOSE_DELAY=-1")
            .jdbcDriver("org.h2.Driver")
