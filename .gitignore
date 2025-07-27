@@ -32,5 +32,6 @@ replay_pid*
 lib/bin
 examples/exposed/bin
 examples/hibernate/bin
+examples/mongo/bin
 
 .kotlin

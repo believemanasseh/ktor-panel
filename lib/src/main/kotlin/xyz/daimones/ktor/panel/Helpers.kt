@@ -1,8 +1,10 @@
 package xyz.daimones.ktor.panel
 
+import org.hibernate.jpa.HibernatePersistenceConfiguration
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.vendors.currentDialect
+import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 
 /**
  * Helper functions for the Ktor Panel library.
@@ -59,3 +61,14 @@ internal fun snakeToCamel(snake: String): String {
     }.joinToString("")
 }
 
+/**
+ * Registers the panel admin entity with the Hibernate persistence configuration.
+ *
+ * This function adds the JpaAdminUser entity to the Hibernate configuration,
+ * allowing it to be managed by the JPA provider.
+ *
+ * @param config The HibernatePersistenceConfiguration to register entities with
+ */
+fun registerAdminEntity(config: HibernatePersistenceConfiguration) {
+    config.managedClass(JpaAdminUser::class.java)
+}
