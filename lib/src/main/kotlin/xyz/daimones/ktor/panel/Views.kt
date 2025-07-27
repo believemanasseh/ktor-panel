@@ -222,19 +222,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         return if (driverType == DriverType.EXPOSED) {
             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { column ->
                 val htmlInputType = getHtmlInputType(column)
-                val enumValues: Array<out Enum<*>>? = when (column.columnType) {
-                    is EnumerationColumnType<*> -> {
-                        (column.columnType as EnumerationColumnType<*>).klass.java.enumConstants
-                    }
 
-                    is EnumerationNameColumnType<*> -> {
-                        (column.columnType as EnumerationNameColumnType<*>).klass.java.enumConstants
-                    }
+                @Suppress("UNCHECKED_CAST")
+                val enumValues: Array<out Enum<*>>? = getEnumValues(htmlInputType, column)?.first as? Array<out Enum<*>>
 
-                    else -> {
-                        null
-                    }
-                }
                 mapOf(
                     "name" to column.name,
                     "html_input_type" to htmlInputType,
@@ -242,7 +233,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "enum_values" to enumValues?.map { enumValue -> enumValue.name }
                 )
             }
-        } else if (driverType == DriverType.JPA) {
+        } else {
             entityKClass.memberProperties.map { property ->
                 val columnName = property.name
                 val htmlInputType = getHtmlInputType(property.returnType)
@@ -262,11 +253,15 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "name" to columnName,
                     "html_input_type" to htmlInputType,
                     "original_type" to property.returnType.toString(),
-                    "enum_values" to enumValues
+                    "enum_values" to enumValues?.map { enumValue ->
+                        when (enumValue) {
+                            is Enum<*> -> enumValue.name
+                            is ObjectId -> enumValue.toHexString()
+                            else -> enumValue.toString()
+                        }
+                    }
                 )
             }
-        } else {
-            throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
     }
 
@@ -330,7 +325,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 var actualValue: Any?
                 (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                     // Find the corresponding property on the entity object using reflection.
-                    val property = entity!!::class.memberProperties.find { it.name == column.name }
+                    val camelCaseName = snakeToCamel(column.name)
+                    val property = entity!!::class.memberProperties.find { it.name == camelCaseName }
                     if (property != null) {
                         // Get the value of the property.
                         var value = property.call(entity)
@@ -429,6 +425,64 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 call.respond(MustacheContent(configuration?.customLoginTemplate ?: defaultLoginTemplate, data))
             } else {
                 call.respondRedirect(loginUrl)
+            }
+        }
+    }
+
+    /**
+     * Retrieves enum values for a column if it is an enumeration type.
+     *
+     * This method checks if the column is an ExposedColumn or KType and returns the enum constants
+     * if applicable. It is used to populate select options in forms.
+     *
+     * @param htmlInputType The HTML input type to check against (e.g., "select")
+     * @param column The column to check for enum values
+     * @return A pair containing the enum values array (or null if not applicable) and the column type
+     */
+    private fun <T : Any> getEnumValues(htmlInputType: String, column: T): Pair<Array<out Any>?, String>? {
+        return if (column is ExposedColumn<*> && htmlInputType == "select") {
+            val enumConstants = if (column.columnType is EnumerationColumnType<*>) {
+                (column.columnType as EnumerationColumnType<*>).klass.java.enumConstants
+            } else {
+                (column.columnType as EnumerationNameColumnType<*>).klass.java.enumConstants
+            }
+            Pair(enumConstants, "exposed")
+        } else if (column is KType && htmlInputType == "select" && column.classifier is KClass<*> && (column.classifier as KClass<*>).java.isEnum) {
+            Pair((column.classifier as KClass<*>).java.enumConstants, "non-exposed")
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Retrieves the column values for a given column type and parameter value.
+     *
+     * This method converts the parameter value to the appropriate type based on the column type,
+     * handling various data types like Int, Long, Boolean, LocalDateTime, etc.
+     *
+     * @param column The column type to convert the parameter value for
+     * @param paramValue The parameter value to convert
+     * @return The converted value or null if conversion fails
+     */
+    private fun <T : Any> getColumnValues(column: T, paramValue: String?): Any? {
+        return if (driverType == DriverType.EXPOSED) {
+            when ((column as ExposedColumn<*>).columnType) {
+                is EntityIDColumnType<*> -> paramValue?.toIntOrNull()
+                is BooleanColumnType -> paramValue?.toBoolean() ?: false
+                is IntegerColumnType -> paramValue?.toIntOrNull()
+                is LongColumnType -> paramValue?.toLongOrNull()
+                is DecimalColumnType -> paramValue?.toBigDecimalOrNull()
+                is JavaLocalDateTimeColumnType -> paramValue?.let { LocalDateTime.parse(it) }
+                else -> paramValue
+            }
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            when ((column as KProperty1<T, *>).returnType.classifier) {
+                Int::class -> paramValue?.toIntOrNull()
+                Long::class -> paramValue?.toLongOrNull()
+                Boolean::class -> paramValue?.toBoolean() ?: false
+                LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
+                else -> paramValue
             }
         }
     }
@@ -589,7 +643,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 val originalType = props["original_type"] ?: ""
                                 val isReadOnly = (props["name"] as String).equals("id", ignoreCase = true)
 
-                                mapOf(
+                                val map = mutableMapOf(
                                     "name" to props["name"],
                                     "value" to props["value"],
                                     "html_input_type" to inputType,
@@ -602,17 +656,21 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_general_input" to
                                             !listOf("checkbox", "select", "textarea", "hidden")
                                                 .contains(inputType)
-                                    // TODO: For "is_select", we need to add an "options" list
-                                    // to this map
-                                    // e.g., "options" to listOf(mapOf("value" to "opt1", "text"
-                                    // to "Option 1", "selected" to true/false))
                                 )
+
+                                if (props["enum_values"] != null && inputType == "select") {
+                                    @Suppress("UNCHECKED_CAST")
+                                    map["options"] = (props["enum_values"] as? List<String>)?.map { value ->
+                                        mapOf("value" to value, "text" to value, "selected" to false)
+                                    }
+                                }
+
+                                map
                             }
                         data["fields"] = fieldsForTemplate
-                        val tableDataValues = getTableDataValues()
-                        val tablesData =
-                            mapOf("headers" to headers, "data" to mapOf("values" to tableDataValues))
-                        data["tablesData"] = tablesData
+                        data["tablesData"] =
+                            mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues()))
+
                         call.respond(
                             MustacheContent(
                                 configuration?.customCreateTemplate ?: defaultCreateTemplate,
@@ -638,16 +696,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             }
 
                             val paramValue = params[columnName]
+                            val value: Any? = getColumnValues(column, paramValue)
 
-                            val value: Any? = when (column.columnType) {
-                                is EntityIDColumnType<*> -> paramValue?.toIntOrNull()
-                                is BooleanColumnType -> paramValue?.toBoolean() ?: false
-                                is IntegerColumnType -> paramValue?.toIntOrNull()
-                                is LongColumnType -> paramValue?.toLongOrNull()
-                                is DecimalColumnType -> paramValue?.toBigDecimalOrNull()
-                                is JavaLocalDateTimeColumnType -> paramValue?.let { LocalDateTime.parse(it) }
-                                else -> paramValue
-                            }
                             if (value != null) {
                                 if (columnName == "password") {
                                     // Hash the password before saving
@@ -672,13 +722,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             }
 
                             val paramValue = params[columnName]
-                            val value: Any? = when (property.returnType.classifier) {
-                                Int::class -> paramValue?.toIntOrNull()
-                                Long::class -> paramValue?.toLongOrNull()
-                                Boolean::class -> paramValue?.toBoolean() ?: false
-                                LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
-                                else -> paramValue
-                            }
+                            val value: Any? = getColumnValues(property, paramValue)
 
                             if (value != null) {
                                 dataToSave[columnName] = value
@@ -745,7 +789,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         val entity = dao!!.findById(idValue)
                         val obj = if (driverType == DriverType.EXPOSED) {
                             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.associate { column ->
-                                val property = entity!!::class.memberProperties.find { it.name == column.name }
+                                val camelCaseName = snakeToCamel(column.name)
+                                val property = entity!!::class.memberProperties.find { it.name == camelCaseName }
                                 val actualValue: Any?
                                 if (property != null) {
                                     // Get the value of the property.
@@ -760,26 +805,27 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 }
 
                                 val htmlInputType = getHtmlInputType(column)
+                                val enumValues: Pair<Array<out Any>?, String>? = getEnumValues(htmlInputType, column)
                                 column.name to
                                         mapOf(
                                             "value" to actualValue,
                                             "html_input_type" to htmlInputType,
                                             "original_type" to
-                                                    column.columnType::class.simpleName
+                                                    column.columnType::class.simpleName,
+                                            "enum_values" to enumValues
                                         )
                             }
                         } else {
                             entityKClass.memberProperties.associate { property ->
-                                val columnName = property.name
                                 val value = property.call(entity)
-                                val htmlInputType = getHtmlInputType(property.returnType)
                                 val actualValue = if (value is LocalDateTime) {
                                     value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                                 } else {
                                     value
                                 }
 
-                                columnName to
+                                val htmlInputType = getHtmlInputType(property.returnType)
+                                property.name to
                                         mapOf(
                                             "value" to actualValue,
                                             "html_input_type" to htmlInputType,
@@ -798,7 +844,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                             name.equals("modified", ignoreCase = true) ||
                                             name.equals("password", ignoreCase = true)
 
-                                mapOf(
+                                val map = mutableMapOf(
                                     "name" to name,
                                     "value" to props["value"],
                                     "html_input_type" to inputType,
@@ -814,24 +860,42 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                                 if (inputType == "select") {
                                     @Suppress("UNCHECKED_CAST")
-                                    val enumValues = props["enum_values"] as? List<String>
-                                    if (enumValues != null) {
-                                        mapOf(
-                                            "options" to enumValues.map { value ->
-                                                mapOf(
-                                                    "value" to value,
-                                                    "text" to value,
-                                                    "selected" to (props["value"] == value)
-                                                )
+                                    val enumValues = if (driverType == DriverType.EXPOSED) {
+                                        ((props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first as? Array<out Enum<*>>)?.map { it.name }
+                                    } else {
+                                        (props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first?.map { enumValue ->
+                                            when (enumValue) {
+                                                is Enum<*> -> enumValue.name
+                                                is ObjectId -> enumValue.toHexString()
+                                                else -> enumValue.toString()
                                             }
-                                        )
+                                        }
+                                    }
+                                    if (enumValues != null) {
+                                        map["options"] = enumValues.map { value ->
+                                            mapOf(
+                                                "value" to value,
+                                                "text" to value,
+                                                "selected" to (props["value"] == value)
+                                            )
+                                        }
                                     }
                                 }
+
+                                map
                             }
 
                         data["fields"] = fieldsForTemplate
                         data["idValue"] = idValue.toString()
                         data["object"] = obj
+
+                        if (successMessage != null) {
+                            data["successMessage"] = successMessage.toString()
+                            successMessage = null
+                        } else {
+                            data.remove("successMessage")
+                        }
+
                         call.respond(
                             MustacheContent(
                                 configuration?.customDetailsTemplate ?: defaultDetailsTemplate,
@@ -842,6 +906,41 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         val loginUrl = "/${configuration?.url}/login"
                         call.respondRedirect(loginUrl)
                     }
+                }
+
+                post {
+                    val params = call.receiveParameters()
+                    try {
+                        call.parameters["id"]?.toInt()
+                            ?: throw IllegalArgumentException("ID parameter is required")
+                    } catch (e: NumberFormatException) {
+                        call.parameters["id"] ?: throw IllegalArgumentException("ID parameter is required")
+                    }
+                    val dataToSave = mutableMapOf<String, Any>()
+                    if (driverType == DriverType.EXPOSED) {
+                        (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+                            val paramValue = params[column.name]
+                            val value: Any? = getColumnValues(column, paramValue)
+
+                            if (value != null) {
+                                dataToSave[column.name] = value
+                            }
+                        }
+                    } else {
+                        entityKClass.memberProperties.forEach { property ->
+                            val paramValue = params[property.name]
+                            val value: Any? = getColumnValues(property, paramValue)
+
+                            if (value != null) {
+                                dataToSave[property.name] = value
+                            }
+                        }
+                    }
+
+                    dao!!.update(dataToSave)
+
+                    successMessage = "Instance updated successfully with ID: ${dataToSave["id"]}"
+                    call.respondRedirect("/${configuration?.url}/$entityPath/edit/${dataToSave["id"]}")
                 }
             }
         }

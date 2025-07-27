@@ -38,11 +38,11 @@
                     <select name="{{name}}" id="{{name}}"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         {{#options}}
-                            <option {{#selected}}selected{{/selected}}>{{text}}</option>
+                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
                         {{/options}}
                         {{^options}}
                             {{#value}}
-                                <option selected>{{value}} (Current)</option>
+                                <option value="{{value}}" selected>{{value}} (Current)</option>
                             {{/value}}
                             <option value="">-- Please select --</option>
                         {{/options}}
