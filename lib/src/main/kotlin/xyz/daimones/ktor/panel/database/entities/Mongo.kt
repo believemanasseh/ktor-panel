@@ -8,7 +8,7 @@ import org.bson.types.ObjectId
 import java.time.LocalDateTime
 
 @Serializable
-data class MongoAdminUser(
+internal data class MongoAdminUser(
     @SerialName("_id")
     @Contextual
     val id: ObjectId,

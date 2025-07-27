@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
 
 
-object AdminUsers : IntIdTable("admin_users") {
+internal object AdminUsers : IntIdTable("admin_users") {
     val username = varchar("username", 255).uniqueIndex()
     val password = varchar("password", 255)
     val role = enumerationByName("role", 15, AdminRole::class).default(AdminRole.SUPER_ADMIN)
@@ -16,7 +16,7 @@ object AdminUsers : IntIdTable("admin_users") {
     val modified = datetime("modified").default(LocalDateTime.now())
 }
 
-class AdminUser(id: EntityID<Int>) : IntEntity(id) {
+internal class AdminUser(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AdminUser>(AdminUsers)
 
     var username by AdminUsers.username

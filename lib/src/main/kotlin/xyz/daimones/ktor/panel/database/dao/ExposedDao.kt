@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
+import xyz.daimones.ktor.panel.snakeToCamel
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.companionObjectInstance
@@ -22,7 +23,7 @@ import kotlin.reflect.full.memberProperties
  * @property database The Exposed Database instance used for transactions.
  * @property entityKClass The entity KClass used for database operations.
  */
-class ExposedDao<T : Any>(
+internal class ExposedDao<T : Any>(
     private val database: Database,
     private val entityKClass: KClass<T>
 ) : DataAccessObjectInterface<T> {
@@ -42,30 +43,11 @@ class ExposedDao<T : Any>(
             .filterIsInstance<KMutableProperty1<*, *>>()
             .associateBy { it.name }
 
-        // Extension function to convert snake_case to camelCase.
-        fun String.snakeToCamelCase(): String {
-            var capitaliseNext = false
-            return this.asSequence().map { char ->
-                if (char == '_') {
-                    capitaliseNext = true
-                    ""
-                } else {
-                    val newChar = if (capitaliseNext) {
-                        capitaliseNext = false
-                        char.uppercase()
-                    } else {
-                        char.toString()
-                    }
-                    newChar
-                }
-            }.joinToString("")
-        }
-
         if (source is Map<*, *>) {
             // If the source is a Map, iterate through its key-value pairs.
             for ((key, value) in source) {
                 var name = key as String
-                name = name.snakeToCamelCase()
+                name = snakeToCamel(name)
                 if (name == "id") continue
                 targetProperties[name]?.let { targetProp ->
                     @Suppress("UNCHECKED_CAST")

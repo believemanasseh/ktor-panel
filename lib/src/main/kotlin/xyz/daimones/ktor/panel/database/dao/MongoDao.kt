@@ -19,7 +19,7 @@ import kotlin.reflect.full.memberProperties
  * @property database The MongoDatabase instance used for operations.
  * @property entityKClass The KClass of the entity being managed.
  */
-class MongoDao<T : Any>(private val database: MongoDatabase, private val entityKClass: KClass<T>) :
+internal class MongoDao<T : Any>(private val database: MongoDatabase, private val entityKClass: KClass<T>) :
     DataAccessObjectInterface<T> {
     /**
      * The MongoDB collection for the entity type.

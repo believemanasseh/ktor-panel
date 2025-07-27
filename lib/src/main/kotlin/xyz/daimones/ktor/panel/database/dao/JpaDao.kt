@@ -17,7 +17,10 @@ import kotlin.reflect.KClass
  * @property entityManagerFactory The EntityManagerFactory used to create EntityManagers.
  * @property entityKClass The KClass of the entity being managed by this DAO.
  */
-class JpaDao<T : Any>(private val entityManagerFactory: EntityManagerFactory, private val entityKClass: KClass<T>) :
+internal class JpaDao<T : Any>(
+    private val entityManagerFactory: EntityManagerFactory,
+    private val entityKClass: KClass<T>
+) :
     DataAccessObjectInterface<T> {
     /**
      * Executes a read operation using the provided block of code. This method creates an

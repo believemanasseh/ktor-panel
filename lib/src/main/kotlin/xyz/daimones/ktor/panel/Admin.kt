@@ -129,7 +129,7 @@ class Admin(
  *
  * @property roots List of root directories where templates can be found
  */
-class MultiRootMustacheFactory(private val roots: List<String>) : DefaultMustacheFactory() {
+internal class MultiRootMustacheFactory(private val roots: List<String>) : DefaultMustacheFactory() {
     override fun getReader(resourceName: String): Reader {
         for (root in roots) {
             val stream = this.javaClass.classLoader.getResourceAsStream("$root/$resourceName")

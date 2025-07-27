@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(name = "admin_users")
-class JpaAdminUser(
+internal class JpaAdminUser(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Int? = null,

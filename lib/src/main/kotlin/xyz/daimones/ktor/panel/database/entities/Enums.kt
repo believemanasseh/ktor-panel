@@ -1,6 +1,6 @@
 package xyz.daimones.ktor.panel.database.entities
 
-enum class AdminRole {
+internal enum class AdminRole {
     SUPER_ADMIN,
     EDITOR,
     VIEWER
