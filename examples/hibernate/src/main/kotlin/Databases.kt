@@ -5,14 +5,14 @@ import jakarta.persistence.EntityManagerFactory
 import org.hibernate.jpa.HibernatePersistenceConfiguration
 import org.hibernate.tool.schema.Action
 import org.mindrot.jbcrypt.BCrypt
-import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
-
+import xyz.daimones.ktor.panel.registerAdminEntity
 
 fun Application.configureDatabases(): EntityManagerFactory {
+    val config = HibernatePersistenceConfiguration("Users")
+    registerAdminEntity(config) // Registers library's admin entity
     val entityManagerFactory =
-        HibernatePersistenceConfiguration("Users")
+        config
             .managedClass(User::class.java)
-            .managedClass(JpaAdminUser::class.java)
             .jdbcUrl("jdbc:h2:mem:hibernate_example;DB_CLOSE_DELAY=-1")
             .jdbcDriver("org.h2.Driver")
             .jdbcCredentials("sa", "")

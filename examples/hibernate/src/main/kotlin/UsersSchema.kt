@@ -3,6 +3,8 @@ package com.example
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
+
 @Entity
 @Table(name = "users")
 class User(
@@ -24,6 +26,10 @@ class User(
 
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = false,
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 15, nullable = false)
+    var role: Role = Role.SUPER_ADMIN,
 
     @Column(name = "created", nullable = false, updatable = false)
     var created: LocalDateTime = LocalDateTime.now(),

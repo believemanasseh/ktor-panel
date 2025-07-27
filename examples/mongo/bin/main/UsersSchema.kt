@@ -6,8 +6,6 @@ import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
 import java.time.LocalDateTime
 
-enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
-
 @Serializable
 data class User(
     @SerialName("_id")
@@ -17,7 +15,6 @@ data class User(
     val lastName: String? = null,
     val password: String,
     val isActive: Boolean = false,
-    val role: Role = Role.SUPER_ADMIN,
     val created: String = LocalDateTime.now().toString(),
     val modified: String = LocalDateTime.now().toString()
 )
