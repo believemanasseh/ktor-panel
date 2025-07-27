@@ -5,16 +5,54 @@
 </head>
 <body>
 <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
-    <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
-       href="/{{configuration.url}}"
-    >{{configuration.adminName}}</a>
-    {{#tables}}
-        <a class="capitalize no-underline text-[15px] font-bold text-white p-4 cursor-pointer hover:bg-black active:bg-black"
-           href="/{{configuration.url}}/{{.}}/list"
-        >{{.}}
-        </a>
-    {{/tables}}
+    <!-- Left Arrow -->
+    <button id="scrollLeft" class="flex flex-row px-2 z-10 bg-[#35373b] text-white hover:bg-black"
+            style="display:none;">&#8592;
+    </button>
+
+    <!-- Scrollable List -->
+    <div id="navScroll" class="flex flex-row overflow-x-auto w-full">
+        <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
+           href="/{{configuration.url}}"
+        >{{configuration.adminName}}</a>
+        {{#tables}}
+            <a class="capitalize no-underline text-[15px] font-bold text-white p-4 cursor-pointer hover:bg-black active:bg-black"
+               href="/{{configuration.url}}/{{.}}/list"
+            >{{.}}
+            </a>
+        {{/tables}}
+    </div>
+
+    <!-- Right Arrow -->
+    <button id="scrollRight" class="flex flex-row px-2 bg-[#35373b] text-white hover:bg-black"
+            style="display:none;">&#8594;
+    </button>
 </nav>
+<script>
+    const navScroll = document.getElementById('navScroll');
+    const scrollLeft = document.getElementById('scrollLeft');
+    const scrollRight = document.getElementById('scrollRight');
+
+    // Hide scrollbar
+    navScroll.style.scrollbarWidth = 'none';
+    navScroll.style.msOverflowStyle = 'none';
+    navScroll.style.overflowY = 'hidden';
+
+    // Arrow scroll logic
+    function updateArrows() {
+        scrollLeft.style.display = navScroll.scrollLeft > 0 ? '' : 'none';
+        scrollRight.style.display = navScroll.scrollLeft + navScroll.clientWidth < navScroll.scrollWidth ? '' : 'none';
+    }
+
+    scrollLeft.onclick = () => {
+        navScroll.scrollBy({left: -150, behavior: 'smooth'});
+    };
+    scrollRight.onclick = () => {
+        navScroll.scrollBy({left: 150, behavior: 'smooth'});
+    };
+    navScroll.onscroll = updateArrows;
+    window.onload = updateArrows;
+</script>
 </body>
 </html>
 
