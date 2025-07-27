@@ -30,11 +30,11 @@ dependencies {
     implementation(platform(libs.mongodb.driver.bom))
     implementation(libs.mongodb.driver.kotlin.coroutine)
     implementation(libs.bson.kotlinx)
+    implementation(libs.hibernate.core)
 
     // Internal test dependencies
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.hibernate.core)
     testImplementation(libs.de.flapdoodle.embed.mongo)
 
     // Runtime-only test dependencies

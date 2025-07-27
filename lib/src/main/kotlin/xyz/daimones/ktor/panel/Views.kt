@@ -151,11 +151,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "creation_date",
                     "created_on"
                 )
-                if (p.javaField?.name == "") {
-                    names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
-                } else {
-                    false
-                }
+                names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
             }
             val modifiedProperty = properties.find { p ->
                 val names = setOf(
@@ -167,11 +163,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     "last_modified",
                     "last_updated"
                 )
-                if (p.javaField?.name == "") {
-                    names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
-                } else {
-                    false
-                }
+                names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
             }
             reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
             properties.map { it.name }
@@ -389,6 +381,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     }
                 }
             }
+
             val arr = arrayOfNulls<String>(map.size)
             for ((key, value) in map) {
                 arr[key] = value
@@ -825,11 +818,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 }
 
                                 val htmlInputType = getHtmlInputType(property.returnType)
+                                val enumValues: Pair<Array<out Any>?, String>? =
+                                    getEnumValues(htmlInputType, property.returnType)
                                 property.name to
                                         mapOf(
                                             "value" to actualValue,
                                             "html_input_type" to htmlInputType,
-                                            "original_type" to property.returnType.toString()
+                                            "original_type" to property.returnType.toString(),
+                                            "enum_values" to enumValues
                                         )
                             }
                         }
@@ -910,13 +906,16 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 post {
                     val params = call.receiveParameters()
+
                     try {
                         call.parameters["id"]?.toInt()
                             ?: throw IllegalArgumentException("ID parameter is required")
                     } catch (e: NumberFormatException) {
                         call.parameters["id"] ?: throw IllegalArgumentException("ID parameter is required")
                     }
+
                     val dataToSave = mutableMapOf<String, Any>()
+
                     if (driverType == DriverType.EXPOSED) {
                         (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                             val paramValue = params[column.name]
@@ -926,6 +925,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 dataToSave[column.name] = value
                             }
                         }
+                        dao!!.update(dataToSave)
                     } else {
                         entityKClass.memberProperties.forEach { property ->
                             val paramValue = params[property.name]
@@ -935,9 +935,41 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 dataToSave[property.name] = value
                             }
                         }
-                    }
+                        val constructor = entityKClass.primaryConstructor
+                            ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
 
-                    dao!!.update(dataToSave)
+                        val args = constructor.parameters.associateWith { param ->
+                            val value = dataToSave[param.name]
+                            when (param.type.classifier) {
+                                ObjectId::class -> (value as? String)?.let { ObjectId(it) }
+                                LocalDateTime::class -> {
+                                    if (value!!::class == LocalDateTime::class) {
+                                        value
+                                    } else if (value is String) {
+                                        LocalDateTime.parse(value)
+                                    } else {
+                                        null
+                                    }
+
+                                }
+
+                                is KClass<*> -> if ((param.type.classifier as KClass<*>).java.isEnum) {
+                                    value.let { enumValue ->
+                                        @Suppress("UNCHECKED_CAST")
+                                        java.lang.Enum.valueOf(
+                                            (param.type.classifier as KClass<*>).java as Class<out Enum<*>>,
+                                            enumValue as String
+                                        )
+                                    }
+                                } else value
+
+                                else -> value
+                            }
+                        }
+
+                        val entityInstance = constructor.callBy(args)
+                        dao!!.update(entityInstance)
+                    }
 
                     successMessage = "Instance updated successfully with ID: ${dataToSave["id"]}"
                     call.respondRedirect("/${configuration?.url}/$entityPath/edit/${dataToSave["id"]}")
