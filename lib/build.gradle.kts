@@ -17,7 +17,7 @@ allOpen {
 }
 
 group = "xyz.daimones"
-version = "0.0.1"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -62,6 +62,8 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     withSourcesJar()
     withJavadocJar()
 }
@@ -127,11 +129,15 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
-//tasks.withType<Test> {
-//    testLogging {
-//        showStandardStreams = true
-//    }
-//}
+tasks.withType<Test> {
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+tasks.withType<Jar> {
+    archiveBaseName.set("ktor-panel")
+}
 
 sourceSets {
     main {
