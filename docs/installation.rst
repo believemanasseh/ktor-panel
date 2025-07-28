@@ -115,9 +115,4 @@ Troubleshooting
 - **Dependency not found?** Double-check the version and group/artifact IDs.
 - **Build issues?** Ensure you’re using a compatible JDK (Java 17+ recommended).
 - **Manual JAR install:** Make sure the JAR is in your ``libs/`` directory and the path is correct.
-
-Need Help?
-----------
-Check out the `README <../README.md>`__ or open an issue on GitHub for support.
-
-Happy coding with Ktor Panel!
+- **GPG verification failed?** Ensure you have the correct public key and that the artifact hasn't been tampered with.
