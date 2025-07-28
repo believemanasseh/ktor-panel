@@ -14,7 +14,7 @@ your database entities through an intuitive and secure web interface with minima
 
 ```kotlin
 dependencies {
-    implementation("xyz.daimones:ktor-panel:0.0.1")
+    implementation("xyz.daimones:ktor-panel:0.1.0")
 }
 ```
 
@@ -22,7 +22,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'xyz.daimones:ktor-panel:0.0.1'
+    implementation 'xyz.daimones:ktor-panel:0.1.0'
 }
 ```
 
@@ -33,7 +33,7 @@ dependencies {
 <dependency>
     <groupId>xyz.daimones</groupId>
     <artifactId>ktor-panel</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
