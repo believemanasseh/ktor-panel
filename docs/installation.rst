@@ -72,6 +72,34 @@ For contributors or those who want to customise the library, you can build from 
 
 3. Find the JAR in ``lib/build/libs/`` and add it to your project as shown above.
 
+Verifying Release Artifacts
+--------------------------
+
+To ensure the integrity and authenticity of downloaded release files, each artifact is accompanied by a `.asc` signature file.
+
+1. Download both the artifact (e.g., `ktor-panel-0.1.0.jar`) and its `.asc` signature.
+2. Obtain the maintainer's public GPG key. The key ID and fingerprint are published below.
+3. Import the public key from a keyserver:
+
+   .. code-block:: bash
+
+      gpg --keyserver keyserver.ubuntu.com --recv-keys <KEY_ID>
+
+4. Verify the artifact:
+
+   .. code-block:: bash
+
+      gpg --verify ktor-panel-0.1.0.jar.asc ktor-panel-0.1.0.jar
+
+If verification succeeds, the artifact is authentic and untampered.
+
+Maintainer GPG Key Information
+------------------------------
+
+- Key ID: `331D4ECF`
+- Fingerprint: `F871 DDEE 2ABD BE95 99B8  53D7 8F3C E4B8 331D 4ECF`
+- Public key: Available at `https://github.com/believemanasseh/ktor-panel/keys` or via keyserver.
+
 Verifying Installation
 ----------------------
 After installation, verify by importing the main classes in your code:
