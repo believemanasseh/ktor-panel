@@ -1,5 +1,6 @@
 # Ktor Panel
 
+[![Maven Central](https://img.shields.io/maven-central/v/xyz.daimones/ktor-panel?color=blue&label=Maven%20Central)](https://central.sonatype.com/artifact/xyz.daimones/ktor-panel)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/believemanasseh/ktor-panel)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg)](https://kotlinlang.org)
 [![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
@@ -7,6 +8,11 @@
 
 A lightweight, customisable admin interface library for Ktor applications. Ktor Panel provides a simple way to manage
 your database entities through an intuitive and secure web interface with minimal configuration.
+
+<p style="display: flex; flex-wrap: wrap; justify-content: center; flex-direction: row;">
+  <img src="docs/static/admin_details.jpg" alt="Admin Details" width="350"/>
+  <img src="docs/static/admin_list.jpg" alt="Admin List" width="350"/>
+</p>
 
 ## Installation
 
