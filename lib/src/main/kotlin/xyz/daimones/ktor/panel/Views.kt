@@ -869,10 +869,13 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     }
                                     if (enumValues != null) {
                                         map["options"] = enumValues.map { value ->
+                                            val originalEnumValue = (props["value"] as? Enum<*>)?.name
+                                                ?: props["value"]?.toString()
+
                                             mapOf(
                                                 "value" to value,
                                                 "text" to value,
-                                                "selected" to (props["value"] == value)
+                                                "selected" to (originalEnumValue == value)
                                             )
                                         }
                                     }
@@ -925,6 +928,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 dataToSave[column.name] = value
                             }
                         }
+
                         dao!!.update(dataToSave)
                     } else {
                         entityKClass.memberProperties.forEach { property ->
