@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.allopen)
     `java-library`
     `maven-publish`
+    signing
 }
 
 allOpen {
@@ -62,6 +63,7 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
     withSourcesJar()
+    withJavadocJar()
 }
 
 publishing {
@@ -71,7 +73,7 @@ publishing {
             from(components["java"])
             pom {
                 name = "Ktor Panel"
-                description = "An admin interface library for ktor applications."
+                description = "An admin interface generation library for Ktor servers."
                 url = "https://github.com/believemanasseh/ktor-panel"
                 licenses {
                     license {
@@ -93,6 +95,31 @@ publishing {
                 }
             }
         }
+    }
+    repositories {
+        maven {
+            name = "OSSRH"
+            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                val ossrhUsername: String? by project
+                val ossrhPassword: String? by project
+                username = ossrhUsername
+                password = ossrhPassword
+            }
+        }
+    }
+}
+
+signing {
+    val signingKey: String? by project
+    val signingPassword: String? by project
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign(publishing.publications["ktor-panel"])
+}
+
+tasks.javadoc {
+    if (JavaVersion.current().isJava9Compatible) {
+        (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
     }
 }
 
