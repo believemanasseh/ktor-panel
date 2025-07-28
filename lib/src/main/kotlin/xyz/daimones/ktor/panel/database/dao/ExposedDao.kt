@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
+import xyz.daimones.ktor.panel.database.entities.AdminUser
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import xyz.daimones.ktor.panel.snakeToCamel
 import kotlin.reflect.KClass
@@ -109,7 +110,7 @@ internal class ExposedDao<T : Any>(
     override suspend fun find(username: String): T? {
         val result = withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
-                companion.find { AdminUsers.username eq username }.firstOrNull()
+                AdminUser.find { AdminUsers.username eq username }.firstOrNull()
             }
         }
         @Suppress("UNCHECKED_CAST")
