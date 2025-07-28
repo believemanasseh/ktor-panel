@@ -11,8 +11,9 @@ entities through an intuitive and secure web interface with minimal configuratio
    :maxdepth: 2
    :caption: Guides
 
-   authentication
+   installation
    usage
+   authentication
    configuration
    dao
 
@@ -25,7 +26,7 @@ Gradle (Kotlin DSL)
 .. code:: kotlin
 
    dependencies {
-       implementation("xyz.daimones:ktor-panel:0.0.1")
+       implementation("xyz.daimones:ktor-panel:0.1.0")
    }
 
 Gradle (Groovy)
@@ -34,7 +35,7 @@ Gradle (Groovy)
 .. code:: groovy
 
    dependencies {
-       implementation 'xyz.daimones:ktor-panel:0.0.1'
+       implementation 'xyz.daimones:ktor-panel:0.1.0'
    }
 
 Maven
@@ -46,7 +47,7 @@ Maven
    <dependency>
        <groupId>xyz.daimones</groupId>
        <artifactId>ktor-panel</artifactId>
-       <version>0.0.1</version>
+       <version>0.1.0</version>
    </dependency>
 
 Quick Start
