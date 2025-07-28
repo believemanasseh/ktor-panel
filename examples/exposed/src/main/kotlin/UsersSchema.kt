@@ -29,7 +29,7 @@ class User(id: EntityID<Int>) : IntEntity(id) {
     var lastName by Users.lastName
     var password by Users.password
     var isActive by Users.isActive
-    val role by Users.role
+    var role by Users.role
     var created by Users.created
     var modified by Users.modified
 }

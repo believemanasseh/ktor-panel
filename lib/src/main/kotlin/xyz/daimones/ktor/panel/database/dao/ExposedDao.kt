@@ -50,9 +50,17 @@ internal class ExposedDao<T : Any>(
                 var name = key as String
                 name = snakeToCamel(name)
                 if (name == "id") continue
+
                 targetProperties[name]?.let { targetProp ->
                     @Suppress("UNCHECKED_CAST")
-                    (targetProp as KMutableProperty1<Any, Any?>).set(target, value)
+                    val propClass = (targetProp as KMutableProperty1<Any, Any?>).returnType.classifier as? KClass<*>
+                    val finalValue = if (propClass?.java?.isEnum == true && value is String) {
+                        @Suppress("UNCHECKED_CAST")
+                        java.lang.Enum.valueOf(propClass.java as Class<out Enum<*>>, value)
+                    } else {
+                        value
+                    }
+                    targetProp.set(target, finalValue)
                 }
             }
         } else {
