@@ -1,7 +1,7 @@
 Ktor Panel
 ==========
 
-\` |Maven Central| |Github| |Kotlin| |Ktor| |License|
+|Maven Central| |Github| |Kotlin| |Ktor| |License|
 
 A lightweight, customisable admin interface library for Ktor
 applications. Ktor Panel provides a simple way to manage your database
