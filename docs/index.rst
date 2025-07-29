@@ -16,6 +16,7 @@ entities through an intuitive and secure web interface with minimal configuratio
    authentication
    configuration
    dao
+   screenshots
 
 Installation
 ------------
