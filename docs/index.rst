@@ -147,34 +147,6 @@ override the defaults:
 -  ``kt-panel-details.hbs`` - Detailed view of a record
 -  ``kt-panel-delete.hbs`` - Confirmation for deleting records
 
-Testing
--------
-
-To run the tests for this project, you can use the following Gradle
-command:
-
-.. code:: bash
-
-   ./gradlew :lib:test
-
-After running the tests, you can find:
-
--  Test reports in the ``lib/build/reports/tests/test/`` directory
--  Test coverage reports in the ``lib/build/reports/jacoco/test/``
-   directory
-
-Contributing
-------------
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch
-   (``git checkout -b feature/amazing-feature``)
-3. Commit your changes (``git commit -m 'Add some amazing feature'``)
-4. Push to the branch (``git push origin feature/amazing-feature``)
-5. Open a Pull Request
-
 License
 -------
 
