@@ -82,7 +82,7 @@ interface DataAccessObjectInterface<T> {
      * @param id The primary key of the entity to delete.
      * @return The number of rows affected (should be 1 if successful).
      */
-    suspend fun delete(id: Int): T?
+    suspend fun delete(id: Any): T?
 
     /**
      * Creates a table for the given entity class.

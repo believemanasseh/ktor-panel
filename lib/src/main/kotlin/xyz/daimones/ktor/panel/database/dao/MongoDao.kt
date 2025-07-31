@@ -116,8 +116,9 @@ internal class MongoDao<T : Any>(private val database: MongoDatabase, private va
      * @param id The ID of the entity to delete.
      * @return The deleted entity of type T, or null if not found.
      */
-    override suspend fun delete(id: Int): T? {
-        val document = collection.findOneAndDelete(Filters.eq("_id", id))
+    override suspend fun delete(id: Any): T? {
+        val objectId = ObjectId(id.toString())
+        val document = collection.findOneAndDelete(Filters.eq("_id", objectId))
         return document
     }
 

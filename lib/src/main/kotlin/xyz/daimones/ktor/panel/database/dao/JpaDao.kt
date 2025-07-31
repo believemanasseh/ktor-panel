@@ -139,10 +139,10 @@ internal class JpaDao<T : Any>(
      * @param id The primary key of the entity to delete
      * @return The deleted entity, or null if no entity was found with the given ID
      */
-    override suspend fun delete(id: Int): T? {
+    override suspend fun delete(id: Any): T? {
         return withContext(Dispatchers.IO) {
             executeInTransaction { entityManager ->
-                val entityToDelete = entityManager.find(entityKClass.java, id)
+                val entityToDelete = entityManager.find(entityKClass.java, id.toString().toInt())
                 entityToDelete?.let { entityManager.remove(it) }
                 entityToDelete
             }

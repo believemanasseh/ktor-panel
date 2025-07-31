@@ -169,11 +169,11 @@ internal class ExposedDao<T : Any>(
      * @param id The primary key of the entity to delete.
      * @return The deleted entity, or null if no entity was found with the given ID.
      */
-    override suspend fun delete(id: Int): T {
+    override suspend fun delete(id: Any): T {
         val obj = withContext(Dispatchers.IO) {
-            transaction(this@ExposedDao.database) { companion.findById(id) }
+            transaction(this@ExposedDao.database) { companion.findById(id.toString().toInt()) }
         }
-        obj?.delete() ?: throw IllegalArgumentException("Entity with id $id not found.")
+        transaction(database) { obj?.delete() } ?: throw IllegalArgumentException("Entity with id $id not found.")
         @Suppress("UNCHECKED_CAST")
         return obj as T
     }

@@ -33,7 +33,6 @@ import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.collections.set
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty1
@@ -999,16 +998,17 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val sessionId = cookies["session_id"]
 
                     if (sessionId != null) {
-                        val idValue =
-                            call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
-                        val instance = dao!!.delete(idValue)
-                        val instanceId: Int?
-                        if (instance is IntEntityClass<IntEntity>) {
-                            instanceId = instance.table.id.toString().toInt()
+                        val idValue = if (driverType == DriverType.MONGO) {
+                            call.parameters["id"]?.toString()
+                                ?: throw IllegalArgumentException("ObjectID parameter is required")
                         } else {
-                            throw IllegalStateException("Deleted instance is not an IntEntity")
+                            call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("ID parameter is required")
                         }
-                        data["instanceId"] = instanceId
+
+                        dao?.delete(idValue)
+                            ?: throw IllegalStateException("Delete operation failed for driver type: $driverType")
+                        data["instanceId"] = idValue
+
                         call.respond(
                             MustacheContent(
                                 configuration?.customDeleteTemplate ?: defaultDeleteTemplate,
