@@ -18,6 +18,9 @@ your database entities through an intuitive and secure web interface with minima
 
 Try the live demo here: [https://ktor-panel.daimones.xyz](https://ktor-panel.daimones.xyz)
 
+> **Note:**  
+> Use `admin` as both the username and password to log in to the demo.
+
 ## Installation
 
 ### Gradle (Kotlin DSL)
