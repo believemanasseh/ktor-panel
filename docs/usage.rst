@@ -1,10 +1,10 @@
 Usage Guide
-=============
+============
 
 Ktor Panel supports multiple Object-Relational Mappers (ORMs) and Object-Document Mappers (ODMs) for seamless integration with various databases.
 
 Currently supported ORMs and ODMs include:
--------------------
+------------------------------------------
 
 - `Exposed <https://github.com/JetBrains/Exposed>`__ (Kotlin SQL ORM)
 - `Hibernate <https://hibernate.org/orm/documentation/7.0/>`__ (Java ORM/JPA)

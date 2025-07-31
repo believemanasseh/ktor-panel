@@ -1,5 +1,5 @@
 Installation Guide
-==================
+===================
 
 Welcome to Ktor Panel! This guide will help you set up the library in your project, whether you prefer the reliability of Maven Central or the cutting-edge releases from GitHub.
 
@@ -73,7 +73,7 @@ For contributors or those who want to customise the library, you can build from 
 3. Find the JAR in ``lib/build/libs/`` and add it to your project as shown above.
 
 Verifying Release Artifacts
---------------------------
+----------------------------
 
 To ensure the integrity and authenticity of downloaded release files, each artifact is accompanied by a `.asc` signature file.
 
