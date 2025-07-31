@@ -14,6 +14,10 @@ your database entities through an intuitive and secure web interface with minima
   <img src="docs/static/admin_list.jpg" alt="Admin List" width="350"/>
 </p>
 
+## Live Demo
+
+Try the live demo here: [https://ktor-panel.daimones.xyz](https://ktor-panel.daimones.xyz)
+
 ## Installation
 
 ### Gradle (Kotlin DSL)
