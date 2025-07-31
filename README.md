@@ -1,6 +1,7 @@
 # Ktor Panel
 
 [![Maven Central](https://img.shields.io/maven-central/v/xyz.daimones/ktor-panel?color=blue&label=Maven%20Central)](https://central.sonatype.com/artifact/xyz.daimones/ktor-panel)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-green?logo=kotlin)](https://ktor-panel.daimones.xyz)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/believemanasseh/ktor-panel)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg)](https://kotlinlang.org)
 [![Ktor](https://img.shields.io/badge/Ktor-3.0.2+-blue.svg)](https://ktor.io/)
