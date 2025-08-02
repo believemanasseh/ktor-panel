@@ -1023,6 +1023,39 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             }
         }
     }
+
+    /**
+     * Sets up the route for logging out of the admin panel.
+     *
+     * This method creates a GET route for logging out, which clears the session cookie and redirects
+     * to the login page.
+     */
+    fun exposeLogoutView() {
+        application?.routing {
+            route("/${configuration?.url}/logout") {
+                get {
+                    val cookies = call.request.cookies
+                    val sessionId = cookies["session_id"]
+
+                    if (sessionId != null) {
+                        call.response.cookies.append(
+                            Cookie(
+                                name = "session_id",
+                                value = "",
+                                httpOnly = true,
+                                path = "/",
+                                maxAge = 0,
+                                secure = false
+                            )
+                        )
+                        call.respondRedirect("/${configuration?.url}/login")
+                    } else {
+                        call.respondRedirect("/${configuration?.url}/login")
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -1192,8 +1225,9 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                     }
                 }
 
-                // Expose the authentication view
+                // Expose authentication views
                 this@EntityView.exposeLoginView(mutableMapOf("configuration" to configuration))
+                this@EntityView.exposeLogoutView()
             }
         }
     }
