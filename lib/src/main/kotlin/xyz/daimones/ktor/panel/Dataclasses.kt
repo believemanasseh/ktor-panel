@@ -44,7 +44,9 @@ package xyz.daimones.ktor.panel
  * @property customLoginTemplate Optional custom Mustache template for the login page of the admin panel.
  *
  * @property customDeleteTemplate Optional custom Mustache template for the delete confirmation page in the admin panel.
- * 
+ *
+ * @property customLogoutTemplate Optional custom Mustache template for the logout confirmation page in the admin panel.
+ *
  * @see Admin
  * @see BaseView
  */
@@ -60,6 +62,7 @@ data class Configuration(
     val customCreateTemplate: String? = null,
     val customDetailsTemplate: String? = null,
     val customLoginTemplate: String? = null,
-    val customDeleteTemplate: String? = null
+    val customDeleteTemplate: String? = null,
+    val customLogoutTemplate: String? = null
 )
 

@@ -94,6 +94,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     /** Default Mustache template for the login page. */
     private val defaultLoginTemplate = "kt-panel-login.hbs"
 
+    /** Default Mustache template for the logout page. */
+    private val defaultLogoutTemplate = "kt-panel-logout.hbs"
+
     /** Default Mustache template for the delete confirmation page. */
     private val defaultDeleteTemplate = "kt-panel-delete.hbs"
 
@@ -1029,8 +1032,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      *
      * This method creates a GET route for logging out, which clears the session cookie and redirects
      * to the login page.
+     *
+     * @param data Map of data to be passed to the template
      */
-    fun exposeLogoutView() {
+    fun exposeLogoutView(data: MutableMap<String, Any>) {
         application?.routing {
             route("/${configuration?.url}/logout") {
                 get {
@@ -1048,7 +1053,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 secure = false
                             )
                         )
-                        call.respondRedirect("/${configuration?.url}/login")
+                        call.respond(
+                            MustacheContent(
+                                configuration?.customLogoutTemplate ?: defaultLogoutTemplate,
+                                data
+                            )
+                        )
                     } else {
                         call.respondRedirect("/${configuration?.url}/login")
                     }
@@ -1228,7 +1238,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
 
                 // Expose authentication views
                 this@EntityView.exposeLoginView(mutableMapOf("configuration" to configuration))
-                this@EntityView.exposeLogoutView()
+                this@EntityView.exposeLogoutView(mutableMapOf("configuration" to configuration))
             }
         }
     }

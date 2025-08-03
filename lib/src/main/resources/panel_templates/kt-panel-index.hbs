@@ -28,9 +28,11 @@
             style="display:none;">&#8594;
     </button>
 </nav>
+
 {{#isAuthenticated}}
     <div class="flex flex-row justify-end w-[85vw]"><a
-            class="text-indigo-600 hover:text-indigo-700 underline">Logout</a></div>
+            class="text-indigo-600 hover:text-indigo-700 underline" href="/{{configuration.url}}/logout">Logout</a>
+    </div>
 {{/isAuthenticated}}
 
 <script>
