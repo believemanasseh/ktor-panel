@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Logout</title>
+</head>
+<body>
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+    <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
+       href="/{{configuration.url}}"
+    >{{configuration.adminName}}</a>
+</nav>
+<p class="text-center">Logged out</p>
+<p class="text-center mt-5">You have been logged out successfully.</p>
+<p class="text-center mt-5">
+    <a href="/{{configuration.url}}/login"
+       class="text-indigo-600 hover:text-indigo-700 py-2 px-4 rounded underline focus:outline-none focus:shadow-outline">
+        Log in again
+    </a>
+</body>
+</html>
+
