@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2025-08-03
+
+### Added
+
+- Logout functionality to the admin interface.
+
 ## [0.1.1] - 2025-07-31
 
 ### Fixed
