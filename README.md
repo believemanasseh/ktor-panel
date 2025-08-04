@@ -161,16 +161,20 @@ After running the tests, you can find:
 To build the Sphinx documentation, use the following command:
 
 ```bash
-sphinx-build -b html docs/ docs/build/
+sphinx-build docs docs/_build
 ```
 
-## Contributing
+## Issues
 
+If you encounter any bugs, problems, or have feature requests, please open an issue in
+the [GitHub Issues](https://github.com/believemanasseh/ktor-panel/issues) section.
+
+## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Commit your changes (`git commit -m 'feat: Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 

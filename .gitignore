@@ -4,6 +4,9 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore sphinx build output directory
+_build
+
 # IntelliJ
 .idea
 
