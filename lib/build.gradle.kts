@@ -149,6 +149,10 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport) // Ensure jacocoTestReport runs after tests
 }
 
+tasks.create("stage") {
+    dependsOn("installDist")
+}
+
 tasks.jacocoTestReport {
     dependsOn(tasks.test) // Ensure tests run before generating the report
     reports {
