@@ -1,1 +1,0 @@
-web: ./build/install/ktor-panel/bin/ktor-panel -Dserver.port=$PORT
