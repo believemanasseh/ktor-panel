@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY . .
 
-RUN gradle build -x test
+RUN gradle build --no-daemon --max-workers=1 -x test
 
 CMD ["gradle", ":exposed-example:run"]
