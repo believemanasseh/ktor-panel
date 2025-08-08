@@ -3,6 +3,7 @@ package xyz.daimones.ktor.panel
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -475,7 +476,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             when ((column as KProperty1<T, *>).returnType.classifier) {
                 Int::class -> paramValue?.toIntOrNull()
                 Long::class -> paramValue?.toLongOrNull()
-                Boolean::class -> paramValue?.toBoolean() ?: false
+                Boolean::class -> paramValue?.toBoolean() == true
                 LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
                 else -> paramValue
             }
@@ -492,6 +493,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     protected fun exposeLoginView(data: MutableMap<String, Any>) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/login") {
                 get {
                     val cookies = call.request.cookies
@@ -562,6 +564,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     protected fun exposeIndexView(data: Map<String, Any>) {
         application?.routing {
+            staticResources("/static", "static")
             val endpoint =
                 if (configuration?.endpoint === "/") "" else "/${configuration?.endpoint}"
             route("/${configuration?.url}${endpoint}") {
@@ -584,6 +587,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     protected fun exposeListView(data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/${entityPath}/list") {
                 get {
                     val cookies = call.request.cookies
@@ -625,6 +629,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     protected fun exposeCreateView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/${entityPath}/new") {
                 get {
                     val cookies = call.request.cookies
@@ -769,6 +774,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     fun exposeDetailsView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/${entityPath}/edit/{id}") {
                 get {
                     val cookies = call.request.cookies
@@ -995,6 +1001,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     fun exposeDeleteView(data: MutableMap<String, Any?>, entityPath: String) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/${entityPath}/delete/{id}") {
                 get {
                     val cookies = call.request.cookies
@@ -1037,6 +1044,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     fun exposeLogoutView(data: MutableMap<String, Any>) {
         application?.routing {
+            staticResources("/static", "static")
             route("/${configuration?.url}/logout") {
                 get {
                     val cookies = call.request.cookies

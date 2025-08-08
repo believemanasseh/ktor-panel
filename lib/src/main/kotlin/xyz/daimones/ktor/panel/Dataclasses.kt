@@ -47,6 +47,8 @@ package xyz.daimones.ktor.panel
  *
  * @property customLogoutTemplate Optional custom Mustache template for the logout confirmation page in the admin panel.
  *
+ * @property customFavicon Optional custom favicon URL for the admin panel. This allows you to set a custom icon
+ *
  * @see Admin
  * @see BaseView
  */
@@ -63,6 +65,7 @@ data class Configuration(
     val customDetailsTemplate: String? = null,
     val customLoginTemplate: String? = null,
     val customDeleteTemplate: String? = null,
-    val customLogoutTemplate: String? = null
+    val customLogoutTemplate: String? = null,
+    val customFavicon: String? = null
 )
 
