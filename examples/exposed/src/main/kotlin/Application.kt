@@ -14,7 +14,8 @@ fun Application.module() {
     configureRouting()
     val database = configureDatabases()
     // Configure and initialise admin interface library
-    val configuration = Configuration(setAuthentication = true)
+    val configuration =
+        Configuration(setAuthentication = true, favicon = "/static/favicon.ico")
     val admin = Admin(this, configuration, database)
     admin.addView(EntityView(User::class))
 }
