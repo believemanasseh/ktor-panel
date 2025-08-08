@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] - dev
+
+### Added
+
+- Support for custom favicon via configuration.
+- Default favicon included in static resources.
+
+### Changed
+
+- Added `<!DOCTYPE html>` to HTML output to ensure standards mode and avoid quirks mode in browsers.
+
 ## [0.2.0] - 2025-08-03
 
 ### Added
