@@ -16,6 +16,7 @@ The ``Configuration`` class allows you to customise the admin panel:
 - ``customLoginTemplate``: Path to a custom login template (default is ``kt-panel-login.hbs``).
 - ``customLogoutTemplate``:  Path to a custom logout template (default is ``kt-panel-logout.hbs``).
 - ``customDeleteTemplate``: Path to a custom delete template (default is ``kt-panel-delete.hbs``).
+- ``favicon``: Path to a custom favicon (default is ``/static/favicon.ico``).
 
 .. code-block:: kotlin
 
