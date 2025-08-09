@@ -32,6 +32,9 @@ dependencies {
     implementation(libs.mongodb.driver.kotlin.coroutine)
     implementation(libs.bson.kotlinx)
     implementation(libs.hibernate.core)
+    implementation(libs.ktor.server.mustache)
+    implementation(libs.ktor.server.freemarker)
+    implementation(libs.ktor.server.thymeleaf)
 
     // Internal test dependencies
     testImplementation(libs.kotlin.test.junit5)
@@ -53,8 +56,6 @@ dependencies {
     api(libs.exposed.json)
     api(libs.exposed.java.time)
     api(libs.ktor.server.core)
-    api(libs.ktor.server.mustache)
-    api(libs.ktor.server.freemarker)
     api(libs.jakarta.persistence.api)
 }
 
