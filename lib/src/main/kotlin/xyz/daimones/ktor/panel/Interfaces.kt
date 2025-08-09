@@ -10,6 +10,6 @@ interface TemplateRenderer {
      * @param model The model to use for rendering the template.
      * @return The rendered content, which can be of any type depending on the renderer implementation.
      */
-    fun render(configuration: Configuration, view: String, defaultTemplate: String, model: Map<String, Any?>): Any
+    fun render(configuration: Configuration, view: String, defaultTemplate: String, model: Map<String, Any>): Any
 }
 

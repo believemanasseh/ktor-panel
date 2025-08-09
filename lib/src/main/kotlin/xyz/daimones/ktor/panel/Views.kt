@@ -645,7 +645,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being created, used in the URL
      */
-    protected fun exposeCreateView(configuration: Configuration, data: MutableMap<String, Any?>, entityPath: String) {
+    protected fun exposeCreateView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/new") {
@@ -790,7 +790,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being updated, used in the URL
      */
-    fun exposeDetailsView(configuration: Configuration, data: MutableMap<String, Any?>, entityPath: String) {
+    fun exposeDetailsView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/edit/{id}") {
@@ -1017,7 +1017,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being deleted, used in the URL
      */
-    fun exposeDeleteView(configuration: Configuration, data: MutableMap<String, Any?>, entityPath: String) {
+    fun exposeDeleteView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/delete/{id}") {
