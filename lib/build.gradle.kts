@@ -54,6 +54,7 @@ dependencies {
     api(libs.exposed.java.time)
     api(libs.ktor.server.core)
     api(libs.ktor.server.mustache)
+    api(libs.ktor.server.freemarker)
     api(libs.jakarta.persistence.api)
 }
 
