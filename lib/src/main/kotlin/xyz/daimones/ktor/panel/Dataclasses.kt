@@ -49,6 +49,8 @@ package xyz.daimones.ktor.panel
  *
  * @property favicon Optional favicon URL for the admin panel. This allows you to set a custom icon.
  *
+ * @property templateRenderer The template renderer/engine used to render templates.
+ *
  * @see Admin
  * @see BaseView
  */
@@ -66,6 +68,6 @@ data class Configuration(
     val customLoginTemplate: String? = null,
     val customDeleteTemplate: String? = null,
     val customLogoutTemplate: String? = null,
-    val favicon: String = "/static/logo.ico"
+    val favicon: String = "/static/logo.ico",
+    val templateRenderer: TemplateRenderer = MustacheTemplateRenderer()
 )
-
