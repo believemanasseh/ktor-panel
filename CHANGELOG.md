@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] - dev
+
+### Added
+
+- Support for custom favicon via configuration.
+- Default favicon included in static resources.
+- Abstracted template rendering via a `TemplateRenderer` interface, allowing support for multiple template engines (
+  e.g., Mustache, FreeMarker, Thymeleaf, etc.) instead of being limited to Mustache.
+
+### Changed
+
+- Added `<!DOCTYPE html>` to HTML output to ensure standards mode and avoid quirks mode in browsers.
+- Updated all view rendering logic to use the configured `TemplateRenderer`, making the library engine-agnostic and
+  extensible.
+
 ## [0.2.0] - 2025-08-03
 
 ### Added

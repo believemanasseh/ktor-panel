@@ -72,3 +72,28 @@ internal fun snakeToCamel(snake: String): String {
 fun registerAdminEntity(config: HibernatePersistenceConfiguration) {
     config.managedClass(JpaAdminUser::class.java)
 }
+
+/**
+ * Retrieves a custom template based on the specified view and configuration.
+ *
+ * This function returns the appropriate custom template for the given view type
+ * from the provided configuration. It supports various views such as details,
+ * list, create, login, logout, delete, and index.
+ *
+ * @param view The type of view for which to retrieve the custom template
+ * @param configuration Configuration settings for the admin panel
+ * @return The custom template for the specified view
+ * @throws IllegalArgumentException if the view type is unknown
+ */
+fun getCustomTemplate(view: String, configuration: Configuration): String? {
+    return when (view) {
+        "details" -> configuration.customDetailsTemplate
+        "list" -> configuration.customListTemplate
+        "create" -> configuration.customCreateTemplate
+        "login" -> configuration.customLoginTemplate
+        "logout" -> configuration.customLogoutTemplate
+        "delete" -> configuration.customDeleteTemplate
+        "index" -> configuration.customIndexTemplate
+        else -> throw IllegalArgumentException("Unknown view: $view")
+    }
+}

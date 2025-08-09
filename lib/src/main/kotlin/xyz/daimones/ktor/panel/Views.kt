@@ -3,6 +3,7 @@ package xyz.daimones.ktor.panel
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -404,20 +405,30 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param cookies The request cookies to check for session ID
      * @param data Map of data to be passed to the template
      * @param endpoint The endpoint being accessed (default is "login")
+     * @param configuration The configuration settings for the admin panel
      */
     private suspend fun validateCookie(
         call: RoutingCall,
         cookies: RequestCookies,
         data: Map<String, Any>,
-        endpoint: String = "login"
+        endpoint: String = "login",
+        configuration: Configuration
     ) {
         val sessionId = cookies["session_id"]
         if (sessionId != null) {
-            call.respond(MustacheContent(configuration?.customIndexTemplate ?: defaultIndexTemplate, data))
+            call.respond(
+                configuration.templateRenderer.render(
+                    configuration, "index", defaultIndexTemplate, data
+                )
+            )
         } else {
-            val loginUrl = "/${configuration?.url}/login"
+            val loginUrl = "/${configuration.url}/login"
             if (endpoint == "login") {
-                call.respond(MustacheContent(configuration?.customLoginTemplate ?: defaultLoginTemplate, data))
+                call.respond(
+                    configuration.templateRenderer.render(
+                        configuration, "login", defaultLoginTemplate, data
+                    )
+                )
             } else {
                 call.respondRedirect(loginUrl)
             }
@@ -475,7 +486,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             when ((column as KProperty1<T, *>).returnType.classifier) {
                 Int::class -> paramValue?.toIntOrNull()
                 Long::class -> paramValue?.toLongOrNull()
-                Boolean::class -> paramValue?.toBoolean() ?: false
+                Boolean::class -> paramValue?.toBoolean() == true
                 LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
                 else -> paramValue
             }
@@ -488,14 +499,16 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET and POST route for the admin panel's login page, rendering the
      * specified template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      */
-    protected fun exposeLoginView(data: MutableMap<String, Any>) {
+    protected fun exposeLoginView(configuration: Configuration, data: MutableMap<String, Any>) {
         application?.routing {
-            route("/${configuration?.url}/login") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/login") {
                 get {
                     val cookies = call.request.cookies
-                    validateCookie(call, cookies, data)
+                    validateCookie(call, cookies, data, configuration = configuration)
                 }
 
                 post {
@@ -519,14 +532,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             )
 
                             val endpoint =
-                                if (configuration?.endpoint === "/") ""
-                                else "/${configuration?.endpoint}"
-                            call.respondRedirect("/${configuration?.url}${endpoint}")
+                                if (configuration.endpoint === "/") ""
+                                else "/${configuration.endpoint}"
+                            call.respondRedirect("/${configuration.url}${endpoint}")
                         } else {
                             data["errorMessage"] = "Invalid username or password"
                             call.respond(
                                 MustacheContent(
-                                    configuration?.customLoginTemplate ?: defaultLoginTemplate,
+                                    configuration.customLoginTemplate ?: defaultLoginTemplate,
                                     data
                                 )
                             )
@@ -558,16 +571,18 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET route for the admin panel's main page that renders using the
      * specified template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      */
-    protected fun exposeIndexView(data: Map<String, Any>) {
+    protected fun exposeIndexView(configuration: Configuration, data: Map<String, Any>) {
         application?.routing {
+            staticResources("/static", "static")
             val endpoint =
-                if (configuration?.endpoint === "/") "" else "/${configuration?.endpoint}"
-            route("/${configuration?.url}${endpoint}") {
+                if (configuration.endpoint === "/") "" else "/${configuration.endpoint}"
+            route("/${configuration.url}${endpoint}") {
                 get {
                     val cookies = call.request.cookies
-                    validateCookie(call, cookies, data, "index")
+                    validateCookie(call, cookies, data, "index", configuration)
                 }
             }
         }
@@ -579,12 +594,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET route for viewing all records in a table, using the specified
      * template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being listed, used in the URL
      */
-    protected fun exposeListView(data: MutableMap<String, Any>, entityPath: String) {
+    protected fun exposeListView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
-            route("/${configuration?.url}/${entityPath}/list") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/${entityPath}/list") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -604,9 +621,13 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             data.remove("successMessage")
                         }
 
-                        call.respond(MustacheContent(configuration?.customListTemplate ?: defaultListTemplate, data))
+                        call.respond(
+                            configuration.templateRenderer.render(
+                                configuration, "list", defaultListTemplate, data
+                            )
+                        )
                     } else {
-                        val loginUrl = "/${configuration?.url}/login"
+                        val loginUrl = "/${configuration.url}/login"
                         call.respondRedirect(loginUrl)
                     }
                 }
@@ -620,12 +641,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a POST route for adding new records to a table, using a custom
      * template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being created, used in the URL
      */
-    protected fun exposeCreateView(data: MutableMap<String, Any?>, entityPath: String) {
+    protected fun exposeCreateView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
-            route("/${configuration?.url}/${entityPath}/new") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/${entityPath}/new") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -667,13 +690,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues()))
 
                         call.respond(
-                            MustacheContent(
-                                configuration?.customCreateTemplate ?: defaultCreateTemplate,
-                                data
+                            configuration.templateRenderer.render(
+                                configuration, "create", defaultCreateTemplate, data
                             )
                         )
                     } else {
-                        val loginUrl = "/${configuration?.url}/login"
+                        val loginUrl = "/${configuration.url}/login"
                         call.respondRedirect(loginUrl)
                     }
                 }
@@ -752,7 +774,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         }
                     }
                     successMessage = "Instance created successfully with ID: $id"
-                    call.respondRedirect("/${configuration?.url}/$entityPath/list")
+                    call.respondRedirect("/${configuration.url}/$entityPath/list")
                 }
             }
         }
@@ -764,12 +786,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET route for editing existing records in a table, using the specified
      * template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being updated, used in the URL
      */
-    fun exposeDetailsView(data: MutableMap<String, Any?>, entityPath: String) {
+    fun exposeDetailsView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
-            route("/${configuration?.url}/${entityPath}/edit/{id}") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/${entityPath}/edit/{id}") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -898,13 +922,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         }
 
                         call.respond(
-                            MustacheContent(
-                                configuration?.customDetailsTemplate ?: defaultDetailsTemplate,
-                                data
+                            configuration.templateRenderer.render(
+                                configuration, "details", defaultDetailsTemplate, data
                             )
                         )
                     } else {
-                        val loginUrl = "/${configuration?.url}/login"
+                        val loginUrl = "/${configuration.url}/login"
                         call.respondRedirect(loginUrl)
                     }
                 }
@@ -978,7 +1001,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     }
 
                     successMessage = "Instance updated successfully with ID: ${dataToSave["id"]}"
-                    call.respondRedirect("/${configuration?.url}/$entityPath/edit/${dataToSave["id"]}")
+                    call.respondRedirect("/${configuration.url}/$entityPath/edit/${dataToSave["id"]}")
                 }
             }
         }
@@ -990,12 +1013,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET route for confirming deletion of a record in a table, using the
      * specified template (or default template if none provided).
      *
+     * @param configuration The configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      * @param entityPath The path to the entity being deleted, used in the URL
      */
-    fun exposeDeleteView(data: MutableMap<String, Any?>, entityPath: String) {
+    fun exposeDeleteView(configuration: Configuration, data: MutableMap<String, Any>, entityPath: String) {
         application?.routing {
-            route("/${configuration?.url}/${entityPath}/delete/{id}") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/${entityPath}/delete/{id}") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -1014,12 +1039,17 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                         call.respond(
                             MustacheContent(
-                                configuration?.customDeleteTemplate ?: defaultDeleteTemplate,
+                                configuration.customDeleteTemplate ?: defaultDeleteTemplate,
                                 data
                             )
                         )
+                        call.respond(
+                            configuration.templateRenderer.render(
+                                configuration, "delete", defaultDeleteTemplate, data
+                            )
+                        )
                     } else {
-                        val loginUrl = "/${configuration?.url}/login"
+                        val loginUrl = "/${configuration.url}/login"
                         call.respondRedirect(loginUrl)
                     }
                 }
@@ -1033,11 +1063,13 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method creates a GET route for logging out, which clears the session cookie and redirects
      * to the login page.
      *
+     * @param configuration Configuration settings for the admin panel
      * @param data Map of data to be passed to the template
      */
-    fun exposeLogoutView(data: MutableMap<String, Any>) {
+    fun exposeLogoutView(configuration: Configuration, data: MutableMap<String, Any>) {
         application?.routing {
-            route("/${configuration?.url}/logout") {
+            staticResources("/static", "static")
+            route("/${configuration.url}/logout") {
                 get {
                     val cookies = call.request.cookies
                     val sessionId = cookies["session_id"]
@@ -1054,13 +1086,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             )
                         )
                         call.respond(
-                            MustacheContent(
-                                configuration?.customLogoutTemplate ?: defaultLogoutTemplate,
-                                data
+                            configuration.templateRenderer.render(
+                                configuration, "logout", defaultLogoutTemplate, data
                             )
                         )
                     } else {
-                        call.respondRedirect("/${configuration?.url}/login")
+                        call.respondRedirect("/${configuration.url}/login")
                     }
                 }
             }
@@ -1120,6 +1151,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         this.setAuthentication(configuration, entityManagerFactory)
 
         this.exposeIndexView(
+            configuration,
             mapOf(
                 "tables" to tableNames.map { it.lowercase() },
                 "configuration" to configuration,
@@ -1142,6 +1174,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         }
 
         this.exposeDeleteView(
+            configuration,
             mutableMapOf(
                 "tables" to tableNames.map { it.lowercase() },
                 "configuration" to configuration,
@@ -1153,6 +1186,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
 
         for (table in tableNames) {
             this.exposeListView(
+                configuration,
                 mutableMapOf(
                     "configuration" to configuration,
                     "tableName" to table,
@@ -1161,6 +1195,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                 entityPath = table.lowercase()
             )
             this.exposeCreateView(
+                configuration,
                 mutableMapOf(
                     "entity" to table,
                     "configuration" to configuration,
@@ -1171,6 +1206,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                 entityPath = table.lowercase()
             )
             this.exposeDetailsView(
+                configuration,
                 mutableMapOf(
                     "entity" to table,
                     "configuration" to configuration,
@@ -1237,8 +1273,8 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                 }
 
                 // Expose authentication views
-                this@EntityView.exposeLoginView(mutableMapOf("configuration" to configuration))
-                this@EntityView.exposeLogoutView(mutableMapOf("configuration" to configuration))
+                this@EntityView.exposeLoginView(configuration, mutableMapOf("configuration" to configuration))
+                this@EntityView.exposeLogoutView(configuration, mutableMapOf("configuration" to configuration))
             }
         }
     }
