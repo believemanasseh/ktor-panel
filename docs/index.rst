@@ -159,15 +159,13 @@ Acknowledgments
 ---------------
 
 -  `Ktor <https://ktor.io/>`__ - Kotlin async web framework
--  `Exposed <https://github.com/JetBrains/Exposed>`__ - Kotlin SQL
-   library
--  `Hibernate <https://hibernate.org/orm/documentation/7.0/>`__ - Java
-   ORM library
+-  `Exposed <https://github.com/JetBrains/Exposed>`__ - Kotlin SQL library
+-  `Hibernate <https://hibernate.org/orm/documentation/7.0/>`__ - Java ORM library
 -  `MongoDB Kotlin Driver <https://www.mongodb.com/docs/drivers/kotlin/coroutine/current/quick-start/>`__ - Official MongoDB driver for Kotlin
--  `Mustache <https://github.com/spullara/mustache.java>`__ - Logic-less
-   templates
--  `Flask-Admin <https://github.com/flask-admin/flask-admin>`__ -
-   Inspiration for this project
+-  `Mustache <https://github.com/spullara/mustache.java>`__ - Logic-less templates
+-  `FreeMarker <https://freemarker.apache.org/>`__ - Java template engine
+-  `Thymeleaf <https://www.thymeleaf.org/documentation.html>`__ - Modern server-side Java template engine
+-  `Flask-Admin <https://github.com/flask-admin/flask-admin>`__ - Inspiration for this project
 
 .. |Kotlin| image:: https://img.shields.io/badge/Kotlin-2.1.0+-blue.svg
    :target: https://kotlinlang.org

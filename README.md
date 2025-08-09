@@ -190,4 +190,6 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 - [MongoDB Kotlin Driver](https://www.mongodb.com/docs/drivers/kotlin/coroutine/current/quick-start/) - Official MongoDB
   driver for Kotlin
 - [Mustache](https://github.com/spullara/mustache.java) - Logic-less templates
+- [FreeMarker](https://freemarker.apache.org/) - Java template engine
+- [Thymeleaf](https://www.thymeleaf.org/documentation.html) - Modern server-side Java template engine
 - [Flask-Admin](https://github.com/flask-admin/flask-admin) - Inspiration for this project
