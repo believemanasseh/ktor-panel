@@ -28,7 +28,7 @@ Try the live demo here: [https://ktor-panel.daimones.xyz](https://ktor-panel.dai
 
 ```kotlin
 dependencies {
-  implementation("xyz.daimones:ktor-panel:0.2.0")
+  implementation("xyz.daimones:ktor-panel:0.3.0")
 }
 ```
 
@@ -36,7 +36,7 @@ dependencies {
 
 ```groovy
 dependencies {
-  implementation 'xyz.daimones:ktor-panel:0.2.0'
+  implementation 'xyz.daimones:ktor-panel:0.3.0'
 }
 ```
 
@@ -47,7 +47,7 @@ dependencies {
 <dependency>
     <groupId>xyz.daimones</groupId>
     <artifactId>ktor-panel</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
