@@ -2,6 +2,8 @@
 
 ### [0.3.1] - 2025-08-10
 
+> Note: Versions prior to 0.3.1 had dependency resolution issues and are not installable. Please use 0.3.1 or newer.
+
 ### Changed
 
 - Removed MongoDB BOM from build and dependency management.
