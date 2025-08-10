@@ -29,7 +29,6 @@ dependencies {
     implementation(libs.h2)
     implementation(libs.hibernate.core)
     implementation(libs.jbcrypt)
-    implementation(platform(libs.mongodb.driver.bom))
     implementation(libs.de.flapdoodle.embed.mongo)
     implementation(libs.mongodb.driver.kotlin.coroutine)
     testImplementation(libs.ktor.server.test.host)

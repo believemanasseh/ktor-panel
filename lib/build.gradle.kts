@@ -17,7 +17,7 @@ allOpen {
 }
 
 group = "xyz.daimones"
-version = "0.3.0"
+version = "0.3.1"
 
 repositories {
     mavenCentral()
@@ -28,7 +28,6 @@ dependencies {
     implementation(libs.jbcrypt)
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.serialization.core)
-    implementation(platform(libs.mongodb.driver.bom))
     implementation(libs.mongodb.driver.kotlin.coroutine)
     implementation(libs.bson.kotlinx)
     implementation(libs.hibernate.core)
@@ -75,6 +74,11 @@ publishing {
         create<MavenPublication>("ktor-panel") {
             artifactId = "ktor-panel"
             from(components["java"])
+            versionMapping {
+                allVariants {
+                    fromResolutionResult()
+                }
+            }
             pom {
                 name = "Ktor Panel"
                 description = "An admin interface generation library for Ktor servers."
