@@ -1,5 +1,15 @@
 # Changelog
 
+### [0.3.1] - 2025-08-10
+
+### Changed
+
+- Removed MongoDB BOM from build and dependency management.
+- Declared explicit versions for all MongoDB-related dependencies to ensure correct POM generation and avoid leaking
+  platform constraints.
+- Improved Gradle publishing configuration for better Maven Central compatibility.
+- Fixed potential dependency resolution issues for consumers.
+
 ## [0.3.0] - 2025-08-10
 
 ### Added
