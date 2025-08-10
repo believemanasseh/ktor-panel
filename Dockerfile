@@ -1,9 +1,12 @@
+# Dockerfile for running the examples/exposed demo app
 FROM gradle:8-jdk17
 
 WORKDIR /app
 
-COPY . .
+COPY examples/exposed/ ./exposed/
 
-RUN gradle build --no-daemon --max-workers=1 -x test
+WORKDIR /app/exposed
 
-CMD ["gradle", ":exposed-example:run"]
+RUN gradle build --no-daemon --max-workers=1 -x test --stacktrace
+
+CMD ["gradle", "run"]
