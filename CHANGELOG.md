@@ -1,8 +1,5 @@
 # Changelog
 
-<<<<<<< Updated upstream
-## [Unreleased] - dev
-=======
 ## [0.3.2] - 2025-XX-XX
 
 ### Fixed
@@ -26,7 +23,6 @@
 - Fixed potential dependency resolution issues for consumers.
 
 ## [0.3.0] - 2025-08-10
->>>>>>> Stashed changes
 
 ### Added
 
@@ -40,6 +36,9 @@
 - Added `<!DOCTYPE html>` to HTML output to ensure standards mode and avoid quirks mode in browsers.
 - Updated all view rendering logic to use the configured `TemplateRenderer`, making the library engine-agnostic and
   extensible.
+- Switched from CDN to locally compiled Tailwind CSS.
+- Configured Tailwind CLI to purge unused styles and minify output.
+- Updated template files to reference local tailwind.min.css.
 
 ## [0.2.0] - 2025-08-03
 
