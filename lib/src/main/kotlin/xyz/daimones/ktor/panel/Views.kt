@@ -26,6 +26,7 @@ import org.jetbrains.exposed.sql.json.JsonBColumnType
 import org.mindrot.jbcrypt.BCrypt
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.DriverType
+import xyz.daimones.ktor.panel.database.InMemorySessionManager
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
 import xyz.daimones.ktor.panel.database.dao.MongoDao
@@ -395,44 +396,19 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     }
 
     /**
-     * Validates the session cookie and responds with the appropriate view.
+     * Validates the user session based on cookies.
      *
-     * This method checks if the session cookie exists. If it does, it renders the index view with
-     * the provided data. If not, it redirects to the login page or renders the login view based on
-     * the endpoint.
+     * This method checks if the session ID from the request cookies exists in Redis,
+     * indicating a valid session.
      *
      * @param call The routing call to respond to
-     * @param cookies The request cookies to check for session ID
-     * @param data Map of data to be passed to the template
-     * @param endpoint The endpoint being accessed (default is "login")
-     * @param configuration The configuration settings for the admin panel
+     * @return True if the session is valid, false otherwise
      */
-    private suspend fun validateCookie(
-        call: RoutingCall,
-        cookies: RequestCookies,
-        data: Map<String, Any>,
-        endpoint: String = "login",
-        configuration: Configuration
-    ) {
-        val sessionId = cookies["session_id"]
-        if (sessionId != null) {
-            call.respond(
-                configuration.templateRenderer.render(
-                    configuration, "index", defaultIndexTemplate, data
-                )
-            )
-        } else {
-            val loginUrl = "/${configuration.url}/login"
-            if (endpoint == "login") {
-                call.respond(
-                    configuration.templateRenderer.render(
-                        configuration, "login", defaultLoginTemplate, data
-                    )
-                )
-            } else {
-                call.respondRedirect(loginUrl)
-            }
-        }
+    private suspend fun validateSession(call: RoutingCall): Boolean {
+        val cookies = call.request.cookies
+        val sessionId = cookies["session_id"] ?: ""
+        val session = InMemorySessionManager.get(sessionId)
+        return !(configuration?.setAuthentication == true && session == null)
     }
 
     /**
@@ -507,8 +483,18 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/login") {
                 get {
-                    val cookies = call.request.cookies
-                    validateCookie(call, cookies, data, configuration = configuration)
+                    val isValid = validateSession(call)
+                    if (!isValid) {
+                        call.respond(
+                            configuration.templateRenderer.render(
+                                configuration, "login", defaultLoginTemplate, data
+                            )
+                        )
+                    } else {
+                        val endpoint =
+                            if (configuration.endpoint === "/") "" else "/${configuration.endpoint}"
+                        call.respondRedirect("/${configuration.url}${endpoint}")
+                    }
                 }
 
                 post {
@@ -516,17 +502,22 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val username = params["username"]
                     val password = params["password"]
 
+
                     // Check if username and password are provided
                     suspend fun validateUser(user: Any?, password: String?, hashedPassword: String?) {
                         if (user != null && BCrypt.checkpw(password.toString(), hashedPassword)) {
                             val sessionId = UUID.randomUUID().toString()
+                            val maxAge = 60 * 60 * 24 * 30
+
+                            InMemorySessionManager.set(sessionId, username.toString(), maxAge.toLong())
+
                             call.response.cookies.append(
                                 Cookie(
                                     name = "session_id",
                                     value = sessionId,
                                     httpOnly = true,
                                     path = "/",
-                                    maxAge = 60 * 60 * 24 * 30, // 30 days
+                                    maxAge = maxAge, // 30 days
                                     secure = false
                                 )
                             )
@@ -558,7 +549,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             validateUser(user, password, (user as? JpaAdminUser)?.password)
                         }
 
-                        else -> throw IllegalStateException("Unsupported ORM type: $driverType")
+                        DriverType.MONGO -> {
+                            user = dao!!.find(username.toString())
+                            validateUser(user, password, (user as? MongoAdminUser)?.password)
+                        }
                     }
                 }
             }
@@ -581,8 +575,16 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 if (configuration.endpoint === "/") "" else "/${configuration.endpoint}"
             route("/${configuration.url}${endpoint}") {
                 get {
-                    val cookies = call.request.cookies
-                    validateCookie(call, cookies, data, "index", configuration)
+                    val isValid = validateSession(call)
+                    if (!isValid) {
+                        call.respondRedirect("/${configuration.url}/login")
+                    } else {
+                        call.respond(
+                            configuration.templateRenderer.render(
+                                configuration, "index", defaultIndexTemplate, data
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -603,9 +605,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/list") {
                 get {
-                    val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-                    if (sessionId != null) {
+                    val isValid = validateSession(call)
+                    if (isValid) {
                         val tableDataValues = getTableDataValues()
                         val tablesData =
                             mapOf(
@@ -650,10 +651,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/new") {
                 get {
-                    val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-
-                    if (sessionId != null) {
+                    val isValid = validateSession(call)
+                    if (isValid) {
                         val columnTypes = getColumnTypes()
                         val fieldsForTemplate =
                             columnTypes.map { props ->
@@ -701,6 +700,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 }
 
                 post {
+                    val isValid = validateSession(call)
+                    if (!isValid) {
+                        call.respondRedirect("/${configuration.url}/login")
+                        return@post
+                    }
+
                     val params = call.receiveParameters()
                     val dataToSave = mutableMapOf<String, Any>()
                     val id: Int?
@@ -795,10 +800,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/edit/{id}") {
                 get {
-                    val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
+                    val isValid = validateSession(call)
 
-                    if (sessionId != null) {
+                    if (isValid) {
                         val idValue: Any = try {
                             call.parameters["id"]?.toInt()
                                 ?: throw IllegalArgumentException("ID parameter is required")
@@ -933,6 +937,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 }
 
                 post {
+                    val isValid = validateSession(call)
+                    if (!isValid) {
+                        call.respondRedirect("/${configuration.url}/login")
+                        return@post
+                    }
+
                     val params = call.receiveParameters()
 
                     try {
@@ -1022,10 +1032,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/${entityPath}/delete/{id}") {
                 get {
-                    val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-
-                    if (sessionId != null) {
+                    val isValid = validateSession(call)
+                    if (isValid) {
                         val idValue = if (driverType == DriverType.MONGO) {
                             call.parameters["id"]?.toString()
                                 ?: throw IllegalArgumentException("ObjectID parameter is required")
@@ -1071,10 +1079,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             staticResources("/static", "static")
             route("/${configuration.url}/logout") {
                 get {
-                    val cookies = call.request.cookies
-                    val sessionId = cookies["session_id"]
-
-                    if (sessionId != null) {
+                    val isValid = validateSession(call)
+                    if (isValid) {
                         call.response.cookies.append(
                             Cookie(
                                 name = "session_id",

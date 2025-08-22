@@ -1,6 +1,32 @@
 # Changelog
 
+<<<<<<< Updated upstream
 ## [Unreleased] - dev
+=======
+## [0.3.2] - 2025-XX-XX
+
+### Fixed
+
+- Corrected session validation logic to ensure proper authentication checks.
+- Fixed `MongoDao` to support entities with immutable (`val`) IDs, ensuring correct persistence and retrieval.
+- Fixed `MongoDao`'s `find` method to properly return the document from the `MongoAdminUser` collection.
+- Fixed `MongoDao`'s `createTable` method to use the actual entity class name for the collection, instead of the
+  reflection class name.
+
+## [0.3.1] - 2025-08-10
+
+> Note: Versions prior to 0.3.1 had dependency resolution issues and are not installable. Please use 0.3.1 or newer.
+
+### Changed
+
+- Removed MongoDB BOM from build and dependency management.
+- Declared explicit versions for all MongoDB-related dependencies to ensure correct POM generation and avoid leaking
+  platform constraints.
+- Improved Gradle publishing configuration for better Maven Central compatibility.
+- Fixed potential dependency resolution issues for consumers.
+
+## [0.3.0] - 2025-08-10
+>>>>>>> Stashed changes
 
 ### Added
 
