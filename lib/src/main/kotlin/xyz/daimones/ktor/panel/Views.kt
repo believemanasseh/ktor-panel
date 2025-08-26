@@ -36,7 +36,6 @@ import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.companionObjectInstance
@@ -470,6 +469,58 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     }
 
     /**
+     * Constructs a map of data to save from the provided parameters.
+     *
+     * This method iterates over the entity's columns or properties, retrieves the corresponding
+     * parameter values, and constructs a map of data to be saved. It also handles password hashing
+     * for common password fields.
+     *
+     * @param params The parameters received from the request
+     * @param dataToSave The mutable map to populate with data to save
+     */
+    private fun constructDataToSave(params: Parameters, dataToSave: MutableMap<String, Any>) {
+        val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
+        if (driverType == DriverType.EXPOSED) {
+            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+                val columnName = column.name
+
+                if (columnName.equals("id", ignoreCase = true)) {
+                    return@forEach
+                }
+
+                val paramValue = params[columnName]
+                val value: Any? = getColumnValues(column, paramValue)
+
+                if (value != null) {
+                    if (commonPasswordFields.contains(columnName.lowercase())) {
+                        dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                    } else {
+                        dataToSave[columnName] = value
+                    }
+                }
+            }
+        } else {
+            entityKClass.memberProperties.forEach { property ->
+                val columnName = property.name
+                if (columnName.equals("id", ignoreCase = true)) {
+                    return@forEach
+                }
+
+                val paramValue = params[columnName]
+                val value: Any? = getColumnValues(property, paramValue)
+
+                if (value != null) {
+                    if (commonPasswordFields.contains(columnName.lowercase())) {
+                        dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                    } else {
+                        dataToSave[columnName] = value
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Sets up the route for the login view.
      *
      * This method creates a GET and POST route for the admin panel's login page, rendering the
@@ -707,28 +758,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     }
 
                     val params = call.receiveParameters()
-                    val dataToSave = mutableMapOf<String, Any>()
-                    val id: Int?
+                    var dataToSave = mutableMapOf<String, Any>()
+                    val id: Any?
                     if (driverType == DriverType.EXPOSED) {
-                        (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
-                            val columnName = column.name
-
-                            if (columnName.equals("id", ignoreCase = true)) {
-                                return@forEach
-                            }
-
-                            val paramValue = params[columnName]
-                            val value: Any? = getColumnValues(column, paramValue)
-
-                            if (value != null) {
-                                if (columnName == "password") {
-                                    // Hash the password before saving
-                                    dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
-                                } else {
-                                    dataToSave[columnName] = value
-                                }
-                            }
-                        }
+                        constructDataToSave(params, dataToSave)
 
                         val instance = dao!!.save(dataToSave)
                         id = if (instance.instanceOf(entityKClass)) {
@@ -737,46 +770,50 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             throw IllegalStateException("Saved instance is not an IntEntity")
                         }
                     } else {
-                        entityKClass.memberProperties.forEach { property ->
-                            val columnName = property.name
-                            if (columnName.equals("id", ignoreCase = true)) {
-                                return@forEach
-                            }
+                        constructDataToSave(params, dataToSave)
+                        val constructor = entityKClass.primaryConstructor
+                            ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
 
-                            val paramValue = params[columnName]
-                            val value: Any? = getColumnValues(property, paramValue)
+                        val args = constructor.parameters.associateWith { param ->
+                            when {
+                                param.name == "id" -> ObjectId()
 
-                            if (value != null) {
-                                dataToSave[columnName] = value
-                            }
-                        }
-                        id = if (driverType == DriverType.JPA) {
-                            val constructor = entityKClass.primaryConstructor
-                                ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
-
-                            val args = constructor.parameters
-                                .mapNotNull { param ->
-                                    if (dataToSave.containsKey(param.name)) {
-                                        param to dataToSave[param.name]
+                                (param.type.classifier as? KClass<*>)?.java?.isEnum == true -> {
+                                    val value = dataToSave[param.name]
+                                    if (value is String) {
+                                        val enumClass = param.type.classifier as KClass<*>
+                                        try {
+                                            @Suppress("UNCHECKED_CAST")
+                                            java.lang.Enum.valueOf(
+                                                enumClass.java as Class<out Enum<*>>,
+                                                value
+                                            )
+                                        } catch (e: Exception) {
+                                            throw IllegalArgumentException("Invalid enum value '$value' for ${param.name}: ${e.message}")
+                                        }
                                     } else {
-                                        null
+                                        dataToSave[param.name]
                                     }
                                 }
-                                .toMap()
 
-                            val entityInstance = constructor.callBy(args)
-                            val savedInstance = dao!!.save(entityInstance)
-                            val idProperty =
-                                savedInstance::class.memberProperties.find {
-                                    setOf(
-                                        "id",
-                                        "_id"
-                                    ).contains(it.name)
-                                } as? KMutableProperty<*>
-                            idProperty?.getter?.call(savedInstance) as? Int
-                        } else {
-                            throw IllegalStateException("Saved instance is not a valid ${entityKClass.simpleName} type")
+                                else -> dataToSave[param.name]
+                            }
+                        }.toMap()
+                        val entityInstance = constructor.callBy(args)
+                        val savedInstance = dao!!.save(entityInstance)
+                        val idProperty =
+                            savedInstance::class.memberProperties.find {
+                                setOf(
+                                    "id",
+                                    "_id"
+                                ).contains(it.name)
+                            }
+
+                        id = when (val value = idProperty?.getter?.call(savedInstance)) {
+                            is ObjectId -> value.toHexString()
+                            else -> value?.toString()
                         }
+
                     }
                     successMessage = "Instance created successfully with ID: $id"
                     call.respondRedirect("/${configuration.url}/$entityPath/list")
