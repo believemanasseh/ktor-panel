@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation("xyz.daimones:ktor-panel:0.3.1")
+    implementation("xyz.daimones:ktor-panel:0.3.2")
     implementation("io.ktor:ktor-server-core-jvm:3.0.2")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:3.0.2")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:3.0.2")
@@ -35,38 +35,3 @@ dependencies {
 }
 
 
-//plugins {
-//    alias(libs.plugins.jvm)
-//    alias(libs.plugins.ktor)
-//    alias(libs.plugins.kotlin.plugin.serialization) apply false
-//    alias(libs.plugins.jpa) apply false
-//    alias(libs.plugins.allopen) apply false
-//}
-//
-//group = "com.example"
-//version = "0.0.1"
-//
-//application {
-//    mainClass = "io.ktor.server.netty.EngineMain"
-//}
-//
-//repositories {
-//    mavenCentral()
-//}
-//
-//dependencies {
-//    implementation(project(":lib"))
-//    implementation(libs.ktor.server.core)
-//    implementation(libs.ktor.serialization.kotlinx.json)
-//    implementation(libs.ktor.server.content.negotiation)
-//    implementation(libs.exposed.core)
-//    implementation(libs.exposed.jdbc)
-//    implementation(libs.h2)
-//    implementation(libs.ktor.server.netty)
-//    implementation(libs.logback.classic)
-//    implementation(libs.ktor.server.config.yaml)
-//    implementation(libs.jbcrypt)
-//
-//    testImplementation(libs.ktor.server.test.host)
-//    testImplementation(libs.kotlin.test.junit5)
-//}
