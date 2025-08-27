@@ -18,7 +18,7 @@ fun Application.module() {
     configureRouting()
     var database: MongoDatabase? = null
     runBlocking(Dispatchers.IO) { database = async { configureDatabase() }.await() }
-    val configuration = Configuration(setAuthentication = false)
+    val configuration = Configuration(setAuthentication = true)
     val admin =
         Admin(this, configuration, database as MongoDatabase)
     admin.addView(EntityView(User::class))

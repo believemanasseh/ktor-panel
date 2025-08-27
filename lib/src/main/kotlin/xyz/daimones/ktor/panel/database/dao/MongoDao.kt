@@ -6,11 +6,14 @@ import com.mongodb.client.result.UpdateResult
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.types.ObjectId
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
+import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
 import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
 
 /**
  * MongoDao is an implementation of DataAccessObjectInterface using MongoDB.
@@ -42,11 +45,13 @@ internal class MongoDao<T : Any>(private val database: MongoDatabase, private va
      * Finds an entity by username
      *
      * @param username The username to search for.
-     * @return The found entity of type T
+     * @return The found entity of type T, or null if not found.
      */
-    override suspend fun find(username: String): T {
-        val document = collection.find(Filters.eq("username", username)).first()
-        return document
+    override suspend fun find(username: String): T? {
+        val adminCollection = database.getCollection("mongoadminuser", MongoAdminUser::class.java)
+        val document = adminCollection.find(Filters.eq("username", username)).firstOrNull()
+        @Suppress("UNCHECKED_CAST")
+        return document as? T
     }
 
     /**
@@ -78,10 +83,19 @@ internal class MongoDao<T : Any>(private val database: MongoDatabase, private va
                 // The insertedId is a BsonValue, so we get its value.
                 val objectId = insertedId.asObjectId().value
                 idProperty.setter.call(entity, objectId)
+                return entity
             } else {
-                throw IllegalStateException("Entity does not have a mutable 'id' property to set the inserted ID.")
+                // Creates a new instance with the id set, for immutable id
+                val constructor = entity::class.primaryConstructor
+                    ?: throw IllegalStateException("Entity must have a primary constructor")
+                val args = constructor.parameters.associateWith { param ->
+                    if (param.name == "id") insertedId.asObjectId().value
+                    else entity::class.memberProperties.find { it.name == param.name }?.call(entity)
+                }
+                return constructor.callBy(args)
             }
         }
+
         return entity
     }
 
@@ -128,6 +142,6 @@ internal class MongoDao<T : Any>(private val database: MongoDatabase, private va
      * when documents are inserted.
      */
     override suspend fun createTable() {
-        database.createCollection(entityKClass::class.simpleName.toString())
+        database.createCollection(entityKClass.simpleName.toString().lowercase())
     }
 }

@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation("xyz.daimones:ktor-panel:0.3.1")
+    implementation("xyz.daimones:ktor-panel:0.3.2")
     implementation("io.ktor:ktor-server-core-jvm:3.0.2")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:3.0.2")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:3.0.2")
@@ -33,3 +33,5 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.0.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:2.1.0")
 }
+
+

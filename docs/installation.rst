@@ -23,7 +23,7 @@ The recommended way to install Ktor Panel is via Maven Central. This ensures you
 .. code:: kotlin
 
    dependencies {
-       implementation("xyz.daimones:ktor-panel:0.1.0")
+       implementation("xyz.daimones:ktor-panel:0.3.2")
    }
 
 **Maven:**
@@ -33,7 +33,7 @@ The recommended way to install Ktor Panel is via Maven Central. This ensures you
    <dependency>
        <groupId>xyz.daimones</groupId>
        <artifactId>ktor-panel</artifactId>
-       <version>0.1.0</version>
+       <version>0.3.2</version>
    </dependency>
 
 No additional repository configuration is needed; Maven Central is included by default.
@@ -43,14 +43,14 @@ Install from GitHub Release
 If you want the latest features or experimental builds, you can download binaries directly from GitHub Releases.
 
 1. Visit the `Releases <https://github.com/believemanasseh/ktor-panel/releases>`__ page.
-2. Download the desired JAR file (e.g., ``ktor-panel-0.1.0.jar``).
+2. Download the desired JAR file (e.g., ``ktor-panel-0.3.2.jar``).
 3. Place the JAR in your project's ``libs/`` directory.
 4. Add it as a local dependency:
 
 .. code:: kotlin
 
    dependencies {
-       implementation(files("libs/ktor-panel-0.1.0.jar"))
+       implementation(files("libs/ktor-panel-0.3.2.jar"))
    }
 
 Install from Source (Advanced)
@@ -77,7 +77,7 @@ Verifying Release Artifacts
 
 To ensure the integrity and authenticity of downloaded release files, each artifact is accompanied by a `.asc` signature file.
 
-1. Download both the artifact (e.g., `ktor-panel-0.1.0.jar`) and its `.asc` signature.
+1. Download both the artifact (e.g., `ktor-panel-0.3.2.jar`) and its `.asc` signature.
 2. Obtain the maintainer's public GPG key. The key ID and fingerprint are published below.
 3. Import the public key from a keyserver:
 
@@ -89,7 +89,7 @@ To ensure the integrity and authenticity of downloaded release files, each artif
 
    .. code-block:: bash
 
-      gpg --verify ktor-panel-0.1.0.jar.asc ktor-panel-0.1.0.jar
+      gpg --verify ktor-panel-0.3.2.jar.asc ktor-panel-0.3.2.jar
 
 If verification succeeds, the artifact is authentic and untampered.
 

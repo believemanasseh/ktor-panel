@@ -1,6 +1,21 @@
 # Changelog
 
-### [0.3.1] - 2025-08-10
+## [0.3.2] - 2025-08-27
+
+### Fixed
+
+- Corrected session validation logic to ensure proper authentication checks.
+- Fixed `MongoDao` to support entities with immutable (`val`) IDs, ensuring correct persistence and retrieval.
+- Fixed `MongoDao`'s `find` method to properly return the document from the `MongoAdminUser` collection.
+- Fixed `MongoDao`'s `createTable` method to use the actual entity class name for the collection, instead of the
+  reflection class name.
+- Fixed creation logic for MongoDB and JPA entities.
+- Improved password hashing logic: Password fields are now dynamically detected and securely hashed before saving,
+  supporting multiple common password field names.
+- Ensured that LocalDateTime fields are correctly detected and mapped to the appropriate HTML input type (
+  datetime-local) in form generation logic for MongoDB entities.
+
+## [0.3.1] - 2025-08-10
 
 > Note: Versions prior to 0.3.1 had dependency resolution issues and are not installable. Please use 0.3.1 or newer.
 
