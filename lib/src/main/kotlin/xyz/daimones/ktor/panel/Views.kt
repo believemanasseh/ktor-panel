@@ -294,8 +294,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 classifier == Int::class || classifier == Long::class || classifier == Short::class -> "number"
                 classifier == Float::class || classifier == Double::class -> "number"
                 classifier == Boolean::class -> "checkbox"
-                classifier == Date::class -> "date"
                 classifier == LocalDateTime::class -> "datetime-local"
+
+                classifier == Date::class -> "date"
                 classifier is KClass<*> && classifier.java.isEnum -> "select"
                 else -> "text"
             }
@@ -735,6 +736,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                                 map
                             }
+
                         data["fields"] = fieldsForTemplate
                         data["tablesData"] =
                             mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues()))
@@ -762,7 +764,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val id: Any?
                     if (driverType == DriverType.EXPOSED) {
                         constructDataToSave(params, dataToSave)
-
                         val instance = dao!!.save(dataToSave)
                         id = if (instance.instanceOf(entityKClass)) {
                             (instance as IntEntity).id.value
