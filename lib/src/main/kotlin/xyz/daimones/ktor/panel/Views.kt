@@ -777,7 +777,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                         val args = constructor.parameters.associateWith { param ->
                             when {
-                                param.name == "id" -> ObjectId()
+                                param.name == "id" && driverType == DriverType.MONGO -> ObjectId()
 
                                 (param.type.classifier as? KClass<*>)?.java?.isEnum == true -> {
                                     val value = dataToSave[param.name]
@@ -800,6 +800,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 else -> dataToSave[param.name]
                             }
                         }.toMap()
+
                         val entityInstance = constructor.callBy(args)
                         val savedInstance = dao!!.save(entityInstance)
                         val idProperty =
