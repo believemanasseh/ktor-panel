@@ -15,7 +15,7 @@ jakarta-persistence = "3.2.0"
 kotlin-reflect = "2.2.0"
 mongodb-driver = "5.5.1"
 kotlinx-serialization-core = "1.6.0"
-de-flapdoodle-embed-mongo = "4.20.1"
+de-flapdoodle-embed-mongo = "4.21.0"
 
 [libraries]
 commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
