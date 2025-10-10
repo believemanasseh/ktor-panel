@@ -48,10 +48,8 @@
 
             {{#is_checkbox}}
                 <div class="mt-2">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="{{name}}" id="{{name}}" value="true"
-                               {{#value}}checked{{/value}} class="form-checkbox h-5 w-5 text-blue-600">
-                    </label>
+                    <input type="checkbox" name="{{name}}" id="{{name}}" value="true"
+                           {{#value}}checked{{/value}} class="form-checkbox h-5 w-5 text-blue-600">
                 </div>
             {{/is_checkbox}}
 
@@ -69,6 +67,11 @@
                     {{/options}}
                 </select>
             {{/is_select}}
+
+            {{#is_file}}
+                <input type="file" name="{{name}}" id="{{name}}"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            {{/is_file}}
 
             {{#is_textarea}}
                 <textarea name="{{name}}" id="{{name}}" rows="4"
