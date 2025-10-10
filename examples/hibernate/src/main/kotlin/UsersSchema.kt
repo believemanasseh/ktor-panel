@@ -31,6 +31,10 @@ class User(
     @Column(name = "role", length = 15, nullable = false)
     var role: Role = Role.SUPER_ADMIN,
 
+    @Lob
+    @Column(name = "image", nullable = true)
+    var image: ByteArray? = null,
+
     @Column(name = "created", nullable = false, updatable = false)
     var created: LocalDateTime = LocalDateTime.now(),
 

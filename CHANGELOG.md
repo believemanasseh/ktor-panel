@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - Dev
+
+### Added
+
+- File uploads handling/management.
+
 ## [0.3.2] - 2025-08-27
 
 ### Fixed

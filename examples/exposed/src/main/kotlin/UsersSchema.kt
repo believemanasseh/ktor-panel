@@ -16,6 +16,8 @@ object Users : IntIdTable() {
     val lastName: Column<String> = varchar("last_name", length = 255)
     val password: Column<String> = varchar("password", length = 100)
     val role = enumerationByName("role", 15, Role::class).default(Role.SUPER_ADMIN)
+    val image = blob("image")
+    val thumbnail = binary("thumbnail")
     val isActive: Column<Boolean> = bool("is_active").default(false)
     val created: Column<LocalDateTime> = datetime("created").default(LocalDateTime.now())
     val modified: Column<LocalDateTime> = datetime("modified").default(LocalDateTime.now())
@@ -30,6 +32,8 @@ class User(id: EntityID<Int>) : IntEntity(id) {
     var password by Users.password
     var isActive by Users.isActive
     var role by Users.role
+    var image by Users.image
+    var thumbnail by Users.thumbnail
     var created by Users.created
     var modified by Users.modified
 }

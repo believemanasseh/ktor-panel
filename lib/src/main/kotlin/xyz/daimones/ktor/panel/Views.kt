@@ -2,6 +2,7 @@ package xyz.daimones.ktor.panel
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.mustache.*
@@ -9,6 +10,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.reflect.*
+import io.ktor.utils.io.*
 import jakarta.persistence.Column
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Id
@@ -23,6 +25,8 @@ import org.jetbrains.exposed.sql.javatime.JavaInstantColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.json.JsonBColumnType
+import org.jetbrains.exposed.sql.json.JsonColumnType
+import org.jetbrains.exposed.sql.statements.api.ExposedBlob
 import org.mindrot.jbcrypt.BCrypt
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.DriverType
@@ -283,8 +287,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 is JavaLocalDateColumnType -> "date"
                 is JavaLocalDateTimeColumnType, is JavaInstantColumnType -> "datetime-local"
                 is EnumerationColumnType<*>, is EnumerationNameColumnType<*> -> "select"
-                is JsonBColumnType<*>, is BlobColumnType -> "textarea"
-                is BinaryColumnType -> "file"
+                is JsonBColumnType<*>, is JsonColumnType<*> -> "textarea"
+                is BasicBinaryColumnType, is BlobColumnType -> "file"
                 else -> "text" // Default fallback
             }
         } else if (column is KType) {
@@ -298,6 +302,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 classifier == Date::class -> "date"
                 classifier is KClass<*> && classifier.java.isEnum -> "select"
+                classifier == ByteArray::class -> "file"
                 else -> "text"
             }
         } else {
@@ -450,7 +455,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         return if (driverType == DriverType.EXPOSED) {
             when ((column as ExposedColumn<*>).columnType) {
                 is EntityIDColumnType<*> -> paramValue?.toIntOrNull()
-                is BooleanColumnType -> paramValue?.toBoolean() ?: false
+                is BooleanColumnType -> paramValue?.toBoolean() == false
                 is IntegerColumnType -> paramValue?.toIntOrNull()
                 is LongColumnType -> paramValue?.toLongOrNull()
                 is DecimalColumnType -> paramValue?.toBigDecimalOrNull()
@@ -479,22 +484,21 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param params The parameters received from the request
      * @param dataToSave The mutable map to populate with data to save
      */
-    private fun constructDataToSave(params: Parameters, dataToSave: MutableMap<String, Any>) {
+    private suspend fun constructDataToSave(params: MultiPartData, dataToSave: MutableMap<String, Any>) {
         val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
         if (driverType == DriverType.EXPOSED) {
             (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
                 val columnName = column.name
-
                 if (columnName.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
-                val paramValue = params[columnName]
-                val value: Any? = getColumnValues(column, paramValue)
-
+                val value = readMultipartData(params, column)
                 if (value != null) {
                     if (commonPasswordFields.contains(columnName.lowercase())) {
                         dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                    } else if (column.columnType is BlobColumnType) {
+                        dataToSave[columnName] = ExposedBlob(value as ByteArray)
                     } else {
                         dataToSave[columnName] = value
                     }
@@ -507,9 +511,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     return@forEach
                 }
 
-                val paramValue = params[columnName]
-                val value: Any? = getColumnValues(property, paramValue)
-
+                val value = readMultipartData(params, property)
                 if (value != null) {
                     if (commonPasswordFields.contains(columnName.lowercase())) {
                         dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
@@ -519,6 +521,44 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 }
             }
         }
+    }
+
+    /**
+     * Reads multipart data for a given column.
+     *
+     * This method reads the multipart data from the request and retrieves the value for the
+     * specified column. It handles both form items and file items, returning the appropriate value.
+     *
+     * @param params The multipart data received from the request
+     * @param column The column to read the value for
+     * @return The value for the column, or null if not found
+     */
+    private suspend fun readMultipartData(params: MultiPartData, column: Any): Any? {
+        val column = if (driverType == DriverType.EXPOSED) {
+            column as ExposedColumn<*>
+        } else {
+            column as KProperty1<*, *>
+        }
+
+        val partData = params.readPart()
+        var value: Any? = null
+        if (partData is PartData.FormItem) {
+            val paramValue = partData.value
+            value = getColumnValues(column, paramValue)
+        } else if (partData is PartData.FileItem) {
+            val channel = partData.provider()
+            val buffer = ByteArray(4096)
+            value = mutableListOf<Byte>()
+            while (!channel.isClosedForRead) {
+                val bytesRead = channel.readAvailable(buffer)
+                if (bytesRead > 0) {
+                    value.addAll(buffer.take(bytesRead))
+                }
+            }
+            value = value.toByteArray()
+        }
+
+        return value
     }
 
     /**
@@ -714,7 +754,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                                 val map = mutableMapOf(
                                     "name" to props["name"],
-                                    "value" to props["value"],
                                     "html_input_type" to inputType,
                                     "original_type" to originalType,
                                     "is_checkbox" to (inputType == "checkbox"),
@@ -722,8 +761,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_textarea" to (inputType == "textarea"),
                                     "is_hidden" to (props["name"] == "id"),
                                     "is_readonly" to isReadOnly,
+                                    "is_file" to (inputType == "file"),
                                     "is_general_input" to
-                                            !listOf("checkbox", "select", "textarea", "hidden")
+                                            !listOf("checkbox", "select", "textarea", "hidden", "file")
                                                 .contains(inputType)
                                 )
 
@@ -759,7 +799,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         return@post
                     }
 
-                    val params = call.receiveParameters()
+                    val params = call.receiveMultipart()
                     var dataToSave = mutableMapOf<String, Any>()
                     val id: Any?
                     if (driverType == DriverType.EXPOSED) {
@@ -918,8 +958,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_select" to (inputType == "select"),
                                     "is_textarea" to (inputType == "textarea"),
                                     "is_readonly" to isReadOnly,
+                                    "is_file" to (inputType == "file"),
                                     "is_general_input" to
-                                            !listOf("checkbox", "select", "textarea", "hidden")
+                                            !listOf("checkbox", "select", "textarea", "hidden", "file")
                                                 .contains(inputType)
                                 )
 

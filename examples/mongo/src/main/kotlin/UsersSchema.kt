@@ -19,6 +19,7 @@ data class User(
     val password: String,
     val isActive: Boolean = false,
     val role: Role = Role.SUPER_ADMIN,
+    val image: ByteArray? = null,
     @Serializable(with = LocalDateTimeSerializer::class)
     val created: LocalDateTime = LocalDateTime.now(),
     @Serializable(with = LocalDateTimeSerializer::class)

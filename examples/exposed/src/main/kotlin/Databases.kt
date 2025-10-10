@@ -3,6 +3,7 @@ package com.example
 import io.ktor.server.application.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.statements.api.ExposedBlob
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.mindrot.jbcrypt.BCrypt
 import java.time.LocalDateTime
@@ -16,6 +17,8 @@ fun Application.configureDatabases(): Database {
             email = "test@email.com"
             firstName = "test"
             lastName = "user"
+            image = ExposedBlob("Image data!".toByteArray())
+            thumbnail = "thumbnail data".toByteArray()
             password = hashedPassword
             created = LocalDateTime.now()
             modified = LocalDateTime.now()
