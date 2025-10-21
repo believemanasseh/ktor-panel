@@ -11,9 +11,23 @@ interface DataAccessObjectInterface<T> {
      * This is a method that can be used to find any entity type.
      * 
      * @param id The primary key of the entity to find.
+     * @param castToEntityId Whether to cast the id to the entity's ID type.
      * @return The found entity of type T, or null if not found.
      */
-    suspend fun findById(id: Any): T?
+    suspend fun findById(id: Any, castToEntityId: Boolean): T? {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
+
+    /**
+     * Finds an entity by its primary key.
+     * This is a method that can be used to find any entity type.
+     *
+     * @param id The primary key of the entity to find.
+     * @return The found entity of type T, or null if not found.
+     */
+    suspend fun findById(id: Any): T? {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+    }
 
     /**
      * Finds all entities of a given type.

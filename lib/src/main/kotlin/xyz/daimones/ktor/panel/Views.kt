@@ -9,7 +9,7 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.reflect.*
+import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import jakarta.persistence.Column
 import jakarta.persistence.EntityManagerFactory
@@ -18,33 +18,30 @@ import kotlinx.coroutines.runBlocking
 import org.bson.types.ObjectId
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.javatime.JavaInstantColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
-import org.jetbrains.exposed.sql.json.JsonBColumnType
-import org.jetbrains.exposed.sql.json.JsonColumnType
 import org.jetbrains.exposed.sql.statements.api.ExposedBlob
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.mindrot.jbcrypt.BCrypt
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.DriverType
+import xyz.daimones.ktor.panel.database.FileUpload
 import xyz.daimones.ktor.panel.database.InMemorySessionManager
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
 import xyz.daimones.ktor.panel.database.dao.MongoDao
-import xyz.daimones.ktor.panel.database.entities.AdminUser
+import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import xyz.daimones.ktor.panel.database.entities.JpaAdminUser
 import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
+import java.io.File
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
-import kotlin.reflect.full.companionObjectInstance
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.javaField
 import org.jetbrains.exposed.sql.Column as ExposedColumn
 
@@ -144,7 +141,39 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         }
 
         return if (driverType == DriverType.EXPOSED) {
-            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { it.name }
+            val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
+                ?: throw IllegalArgumentException("Exposed Entity must have an 'id' property")
+            val properties =
+                entityKClass.declaredMemberProperties.plus(idProp)
+                    .toMutableList()
+            val idProperty = properties.find { p -> p.name == "id" }
+            val createdProperty = properties.find { p ->
+                val names = setOf(
+                    "created",
+                    "created_at",
+                    "createdAt",
+                    "creationDate",
+                    "createdOn",
+                    "creation_date",
+                    "created_on"
+                )
+                names.contains(p.name)
+            }
+            val modifiedProperty = properties.find { p ->
+                val names = setOf(
+                    "modified",
+                    "updated_at",
+                    "updatedAt",
+                    "lastModified",
+                    "lastUpdated",
+                    "last_modified",
+                    "last_updated"
+                )
+                names.contains(p.name)
+            }
+            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
+            properties.map { it.name }
+
         } else if (driverType == DriverType.JPA) {
             val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
             val idProperty = properties.find { p -> p.javaField?.isAnnotationPresent(Id::class.java) == true }
@@ -219,23 +248,42 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     private fun getColumnTypes(): List<Map<String, Any?>> {
         return if (driverType == DriverType.EXPOSED) {
-            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.map { column ->
-                val htmlInputType = getHtmlInputType(column)
+            entityKClass.declaredMemberProperties
+                .map { property ->
+                    var htmlInputType: String = ""
+                    var enumValues: Array<out Any>? = null
+                    transaction(this.database as Database) {
+                        val value = property.getter.call(entityKClass.objectInstance as Table)
+                        if (value is ExposedColumn<*>) {
+                            val actualType = value.columnType
+                            val isFileUpload = property.annotations.any { it is FileUpload }
+                            htmlInputType = getHtmlInputType(actualType, isFileUpload)
+                            enumValues = when (actualType) {
+                                is EnumerationNameColumnType<*> -> actualType.klass.java.enumConstants
+                                is EnumerationColumnType<*> -> actualType.klass.java.enumConstants
+                                else -> null
+                            }
 
-                @Suppress("UNCHECKED_CAST")
-                val enumValues: Array<out Enum<*>>? = getEnumValues(htmlInputType, column)?.first as? Array<out Enum<*>>
+                        }
+                    }
 
-                mapOf(
-                    "name" to column.name,
-                    "html_input_type" to htmlInputType,
-                    "original_type" to column.columnType::class.simpleName.orEmpty(),
-                    "enum_values" to enumValues?.map { enumValue -> enumValue.name }
-                )
-            }
+                    mapOf(
+                        "name" to property.name,
+                        "html_input_type" to htmlInputType,
+                        "original_type" to property.returnType.toString(),
+                        "enum_values" to enumValues?.map { enumValue ->
+                            when (enumValue) {
+                                is Enum<*> -> enumValue.name
+                                else -> enumValue.toString()
+                            }
+                        }
+                    )
+                }
         } else {
             entityKClass.memberProperties.map { property ->
                 val columnName = property.name
-                val htmlInputType = getHtmlInputType(property.returnType)
+                val isFileUpload = property.annotations.any { it is FileUpload }
+                val htmlInputType = getHtmlInputType(property.returnType, isFileUpload)
                 val enumValues: Array<out Any>? = when (property.returnType.classifier) {
                     is KClass<*> -> {
                         val kClass = property.returnType.classifier as KClass<*>
@@ -271,30 +319,38 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * in the admin panel.
      *
      * @param column The column for which to determine the HTML input type
+     * @param isFileUpload Boolean indicating if the column is annotated for file upload
      * @return A string representing the HTML input type (e.g., "text", "number", "checkbox", etc.)
      */
-    private fun <T : Any> getHtmlInputType(column: T): String {
-        return if (column is ExposedColumn<*>) {
-            when (column.columnType) {
-                is EntityIDColumnType<*> -> "number"
-                is VarCharColumnType, is TextColumnType, is CharacterColumnType -> {
-                    if (column.name.contains("password", ignoreCase = true)) "password" else "text"
+    private fun <T : Any> getHtmlInputType(column: T, isFileUpload: Boolean): String {
+        return if (column is ColumnType<*>) {
+            when (column) {
+                is VarCharColumnType -> {
+                    if (isFileUpload) {
+                        "file"
+                    } else {
+                        "text"
+                    }
                 }
-
-                is IntegerColumnType, is LongColumnType, is ShortColumnType -> "number"
-                is DecimalColumnType, is FloatColumnType, is DoubleColumnType -> "number"
                 is BooleanColumnType -> "checkbox"
+                is JavaLocalDateTimeColumnType -> "datetime-local"
+
                 is JavaLocalDateColumnType -> "date"
-                is JavaLocalDateTimeColumnType, is JavaInstantColumnType -> "datetime-local"
-                is EnumerationColumnType<*>, is EnumerationNameColumnType<*> -> "select"
-                is JsonBColumnType<*>, is JsonColumnType<*> -> "textarea"
+                is EnumerationNameColumnType<*> -> "select"
                 is BasicBinaryColumnType, is BlobColumnType -> "file"
-                else -> "text" // Default fallback
+                else -> "number"
+
             }
         } else if (column is KType) {
             val classifier = column.classifier
             when {
-                classifier == String::class -> "text"
+                classifier == String::class -> {
+                    if (isFileUpload) {
+                        "file"
+                    } else {
+                        "text"
+                    }
+                }
                 classifier == Int::class || classifier == Long::class || classifier == Short::class -> "number"
                 classifier == Float::class || classifier == Double::class -> "number"
                 classifier == Boolean::class -> "checkbox"
@@ -319,31 +375,23 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @return A list of maps where each map represents a record with its ID and column values
      */
     private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
-        val entities = dao!!.findAll()
-        return entities.map { entity ->
-            var rowData = mutableListOf<Any?>()
-            if (driverType == DriverType.EXPOSED) {
-                var actualValue: Any?
-                (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
-                    // Find the corresponding property on the entity object using reflection.
-                    val camelCaseName = snakeToCamel(column.name)
-                    val property = entity!!::class.memberProperties.find { it.name == camelCaseName }
-                    if (property != null) {
-                        // Get the value of the property.
-                        var value = property.call(entity)
-                        value = when (value) {
-                            is EntityID<*> -> value.value
-                            is IntIdTable -> value.id
-                            is LocalDateTime -> value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                            else -> value
-                        }
-                        actualValue = value
-                    } else {
-                        actualValue = "null"
-                    }
-                    rowData.add(actualValue)
+        if (driverType == DriverType.EXPOSED) {
+            @Suppress("UNCHECKED_CAST")
+            dao!!.findAll() as List<ResultRow>
+            val table = entityKClass.objectInstance as Table
+
+            @Suppress("UNCHECKED_CAST")
+            val rows = dao!!.findAll() as List<ResultRow>
+            return rows.map { row ->
+                val rowData = table.columns.associate { col ->
+                    col.name to row[col]
                 }
-            } else {
+                mapOf("id" to rowData.values.toList()[0], "nums" to rowData.values.toList())
+            }
+        } else {
+            val entities = dao!!.findAll()
+            return entities.map { entity ->
+                var rowData = mutableListOf<Any?>()
                 val properties = entityKClass.memberProperties.toMutableList()
                 properties.forEach { property ->
                     val value = property.call(entity)
@@ -354,49 +402,50 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     }
                     rowData.add(Pair(property.name, (actualValue ?: "null")))
                 }
-            }
 
-            val createdNames = setOf(
-                "created",
-                "created_at",
-                "createdAt",
-                "creationDate",
-                "createdOn",
-                "creation_date",
-                "created_on"
-            )
-            val modifiedNames = setOf(
-                "modified",
-                "updated_at",
-                "updatedAt",
-                "lastModified",
-                "lastUpdated",
-                "last_modified",
-                "last_updated"
-            )
-            val map: MutableMap<Int, String> = mutableMapOf()
-            var index = 1
-            for (data in rowData) {
-                if (data is Pair<*, *>) {
-                    if (data.first == "id") {
-                        map[0] = data.second.toString()
-                    } else if (createdNames.contains(data.first)) {
-                        map[rowData.size - 1] = data.second.toString()
-                    } else if (modifiedNames.contains(data.first)) {
-                        map[rowData.size - 2] = data.second.toString()
-                    } else {
-                        map[index] = data.second.toString()
-                        index++
+
+                val createdNames = setOf(
+                    "created",
+                    "created_at",
+                    "createdAt",
+                    "creationDate",
+                    "createdOn",
+                    "creation_date",
+                    "created_on"
+                )
+                val modifiedNames = setOf(
+                    "modified",
+                    "updated_at",
+                    "updatedAt",
+                    "lastModified",
+                    "lastUpdated",
+                    "last_modified",
+                    "last_updated"
+                )
+                val map: MutableMap<Int, String> = mutableMapOf()
+                var index = 1
+                for (data in rowData) {
+                    if (data is Pair<*, *>) {
+                        if (data.first == "id") {
+                            map[0] = data.second.toString()
+                        } else if (createdNames.contains(data.first)) {
+                            map[rowData.size - 1] = data.second.toString()
+                        } else if (modifiedNames.contains(data.first)) {
+                            map[rowData.size - 2] = data.second.toString()
+                        } else {
+                            map[index] = data.second.toString()
+                            index++
+                        }
                     }
                 }
-            }
 
-            val arr = arrayOfNulls<String>(map.size)
-            for ((key, value) in map) {
-                arr[key] = value
+                val arr = arrayOfNulls<String>(map.size)
+                for ((key, value) in map) {
+                    arr[key] = value
+                }
+                rowData = arr.toMutableList()
+                mapOf("id" to rowData[0], "nums" to rowData)
             }
-            rowData = if (map.isEmpty()) rowData else arr.toMutableList()
-            mapOf("id" to rowData[0], "nums" to rowData)
         }
     }
 
@@ -487,17 +536,25 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     private suspend fun constructDataToSave(params: MultiPartData, dataToSave: MutableMap<String, Any>) {
         val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
         if (driverType == DriverType.EXPOSED) {
-            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+            entityKClass.declaredMemberProperties.forEach { column ->
                 val columnName = column.name
                 if (columnName.equals("id", ignoreCase = true)) {
                     return@forEach
+                }
+
+                var actualType: IColumnType<*>? = null
+                transaction(this.database as Database) {
+                    val value = column.getter.call(entityKClass.objectInstance as Table)
+                    if (value is ExposedColumn<*>) {
+                        actualType = value.columnType
+                    }
                 }
 
                 val value = readMultipartData(params, column)
                 if (value != null) {
                     if (commonPasswordFields.contains(columnName.lowercase())) {
                         dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
-                    } else if (column.columnType is BlobColumnType) {
+                    } else if (actualType is BlobColumnType) {
                         dataToSave[columnName] = ExposedBlob(value as ByteArray)
                     } else {
                         dataToSave[columnName] = value
@@ -534,29 +591,54 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @return The value for the column, or null if not found
      */
     private suspend fun readMultipartData(params: MultiPartData, column: Any): Any? {
-        val column = if (driverType == DriverType.EXPOSED) {
-            column as ExposedColumn<*>
+        var saveToDisk = false
+        var path: String? = null
+        val column = transaction(this.database as Database) {
+            val property = column as KProperty1<*, *>
+            if (driverType == DriverType.EXPOSED) {
+                if (property.annotations.any { it is FileUpload }) {
+                    saveToDisk = true
+                    val annotation = column.findAnnotation<FileUpload>()
+                    if (annotation != null) {
+                        path = annotation.path
+                    }
+                }
+                property.getter.call(entityKClass.objectInstance as Table)
         } else {
-            column as KProperty1<*, *>
+                if ((column)::class.annotations.any { it is FileUpload }) {
+                    saveToDisk = true
+                }
+                column
+            }
         }
 
-        val partData = params.readPart()
+        val partData: PartData? = params.readPart()
         var value: Any? = null
         if (partData is PartData.FormItem) {
             val paramValue = partData.value
-            value = getColumnValues(column, paramValue)
+            value = getColumnValues(column!!, paramValue)
         } else if (partData is PartData.FileItem) {
             val channel = partData.provider()
-            val buffer = ByteArray(4096)
-            value = mutableListOf<Byte>()
-            while (!channel.isClosedForRead) {
-                val bytesRead = channel.readAvailable(buffer)
-                if (bytesRead > 0) {
-                    value.addAll(buffer.take(bytesRead))
+            if (saveToDisk) {
+                val fileName = partData.originalFileName as String
+                val file = File("${path?.slice(1..path.length - 1)}/$fileName")
+                channel.copyAndClose(file.writeChannel())
+                value = file.path
+            } else {
+                val buffer = ByteArray(4096)
+                value = mutableListOf<Byte>()
+                while (!channel.isClosedForRead) {
+                    val bytesRead = channel.readAvailable(buffer)
+                    if (bytesRead > 0) {
+                        value.addAll(buffer.take(bytesRead))
+                    }
                 }
+                value = value.toByteArray()
             }
-            value = value.toByteArray()
+
         }
+
+        partData?.dispose()
 
         return value
     }
@@ -633,7 +715,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     when (driverType) {
                         DriverType.EXPOSED -> {
                             user = dao!!.find(username.toString())
-                            validateUser(user, password, (user as? AdminUser)?.password)
+                            @Suppress("UNCHECKED_CAST")
+                            validateUser(user, password, (user as Pair<String, String>).second)
                         }
 
                         DriverType.JPA -> {
@@ -805,11 +888,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     if (driverType == DriverType.EXPOSED) {
                         constructDataToSave(params, dataToSave)
                         val instance = dao!!.save(dataToSave)
-                        id = if (instance.instanceOf(entityKClass)) {
-                            (instance as IntEntity).id.value
-                        } else {
-                            throw IllegalStateException("Saved instance is not an IntEntity")
-                        }
+                        @Suppress("UNCHECKED_CAST")
+                        id = (instance as Map<String, Any?>)["id"]
+                            ?: throw IllegalArgumentException("Saved entity does not have an ID.")
                     } else {
                         constructDataToSave(params, dataToSave)
                         val constructor = entityKClass.primaryConstructor
@@ -888,25 +969,26 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         } catch (e: NumberFormatException) {
                             call.parameters["id"] ?: throw IllegalArgumentException("ObjectID parameter is required")
                         }
-                        val entity = dao!!.findById(idValue)
+                        val entity = dao!!.findById(idValue, true)
                         val obj = if (driverType == DriverType.EXPOSED) {
-                            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.associate { column ->
+                            (entityKClass.objectInstance as Table).columns.associate { column ->
                                 val camelCaseName = snakeToCamel(column.name)
-                                val property = entity!!::class.memberProperties.find { it.name == camelCaseName }
-                                val actualValue: Any?
-                                if (property != null) {
-                                    // Get the value of the property.
-                                    val value = property.call(entity)
-                                    actualValue = when (value) {
-                                        is EntityID<*> -> value.value
-                                        is LocalDateTime -> value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                                        else -> value
-                                    }
-                                } else {
-                                    actualValue = null
-                                }
+                                val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
+                                    ?: throw IllegalArgumentException("Exposed Entity must have an 'id' property")
+                                val properties =
+                                    entityKClass.declaredMemberProperties.plus(idProp)
+                                val property = properties.find { it.name == camelCaseName }
 
-                                val htmlInputType = getHtmlInputType(column)
+                                @Suppress("UNCHECKED_CAST")
+                                var actualValue = (entity as Map<String, Any?>)[column.name]
+                                if (actualValue is LocalDateTime) {
+                                    actualValue = actualValue.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                                }
+                                val isFileUpload = property!!.annotations.any { it is FileUpload }
+                                if (isFileUpload) {
+                                    actualValue = (actualValue as String).split("/").last()
+                                }
+                                val htmlInputType = getHtmlInputType(column.columnType, isFileUpload)
                                 val enumValues: Pair<Array<out Any>?, String>? = getEnumValues(htmlInputType, column)
                                 column.name to
                                         mapOf(
@@ -925,8 +1007,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 } else {
                                     value
                                 }
-
-                                val htmlInputType = getHtmlInputType(property.returnType)
+                                val isFileUpload = property.annotations.any { it is FileUpload }
+                                val htmlInputType = getHtmlInputType(property.returnType, isFileUpload)
                                 val enumValues: Pair<Array<out Any>?, String>? =
                                     getEnumValues(htmlInputType, property.returnType)
                                 property.name to
@@ -1247,14 +1329,14 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
 
         // Determine the entity name based on the type of entity class provided
         val entity = when (super.driverType) {
-            DriverType.EXPOSED -> (this.entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName
+            DriverType.EXPOSED -> (this.entityKClass.objectInstance as Table).tableName
             DriverType.JPA, DriverType.MONGO -> this.entityKClass.simpleName
                 ?: throw IllegalArgumentException("Entity must have a simple name")
         }
 
         // Use the entity name to determine the path for delete, list, create, and details views
         val entityPath = when (super.driverType) {
-            DriverType.EXPOSED -> (this.entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName.lowercase()
+            DriverType.EXPOSED -> (this.entityKClass.objectInstance as Table).tableName.lowercase()
             DriverType.JPA, DriverType.MONGO -> this.entityKClass.simpleName?.lowercase()
                 ?: throw IllegalArgumentException("Entity must have a simple name")
         }
@@ -1319,7 +1401,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                 val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
                 if (super.driverType == DriverType.EXPOSED) {
                     // Create the AdminUser table if it doesn't exist
-                    val dao = ExposedDao(database as Database, AdminUser::class)
+                    val dao = ExposedDao(database as Database, AdminUsers::class)
                     dao.createTable()
 
                     // Create the admin user if it doesn't exist

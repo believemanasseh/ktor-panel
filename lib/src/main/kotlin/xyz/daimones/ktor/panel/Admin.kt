@@ -6,11 +6,9 @@ import io.ktor.server.mustache.*
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Table
 import java.io.Reader
-import kotlin.reflect.full.companionObjectInstance
 
 /**
  * Base admin class for the Ktor Panel library.
@@ -88,7 +86,7 @@ class Admin(
         val hasSerializableAnnotation = entityKClass.annotations.any { it is Serializable }
 
         val tableName = if (database is Database) {
-            (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.tableName
+            (entityKClass.objectInstance as Table).tableName
         } else if (hasEntityAnnotation || hasSerializableAnnotation || entityKClass.isData) {
             entityKClass.simpleName.toString()
         } else {
