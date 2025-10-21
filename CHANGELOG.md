@@ -4,7 +4,11 @@
 
 ### Added
 
-- File uploads handling/management.
+- Blob data handling —— Easily manage/upload files, images etc.
+
+### Changed
+
+- Replaced Exposed's entity classes with table objects for querying and data manipulation.
 
 ## [0.3.2] - 2025-08-27
 
