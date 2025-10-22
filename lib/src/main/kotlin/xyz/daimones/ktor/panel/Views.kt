@@ -16,8 +16,6 @@ import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Id
 import kotlinx.coroutines.runBlocking
 import org.bson.types.ObjectId
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
@@ -41,7 +39,10 @@ import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
-import kotlin.reflect.full.*
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.javaField
 import org.jetbrains.exposed.sql.Column as ExposedColumn
 
@@ -141,39 +142,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         }
 
         return if (driverType == DriverType.EXPOSED) {
-            val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
-                ?: throw IllegalArgumentException("Exposed Entity must have an 'id' property")
-            val properties =
-                entityKClass.declaredMemberProperties.plus(idProp)
-                    .toMutableList()
-            val idProperty = properties.find { p -> p.name == "id" }
-            val createdProperty = properties.find { p ->
-                val names = setOf(
-                    "created",
-                    "created_at",
-                    "createdAt",
-                    "creationDate",
-                    "createdOn",
-                    "creation_date",
-                    "created_on"
-                )
-                names.contains(p.name)
-            }
-            val modifiedProperty = properties.find { p ->
-                val names = setOf(
-                    "modified",
-                    "updated_at",
-                    "updatedAt",
-                    "lastModified",
-                    "lastUpdated",
-                    "last_modified",
-                    "last_updated"
-                )
-                names.contains(p.name)
-            }
-            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
+            val properties = (entityKClass.objectInstance as Table).columns.toMutableList()
             properties.map { it.name }
-
         } else if (driverType == DriverType.JPA) {
             val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
             val idProperty = properties.find { p -> p.javaField?.isAnnotationPresent(Id::class.java) == true }
@@ -248,35 +218,25 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      */
     private fun getColumnTypes(): List<Map<String, Any?>> {
         return if (driverType == DriverType.EXPOSED) {
-            entityKClass.declaredMemberProperties
-                .map { property ->
-                    var htmlInputType: String = ""
-                    var enumValues: Array<out Any>? = null
-                    transaction(this.database as Database) {
-                        val value = property.getter.call(entityKClass.objectInstance as Table)
-                        if (value is ExposedColumn<*>) {
-                            val actualType = value.columnType
-                            val isFileUpload = property.annotations.any { it is FileUpload }
-                            htmlInputType = getHtmlInputType(actualType, isFileUpload)
-                            enumValues = when (actualType) {
-                                is EnumerationNameColumnType<*> -> actualType.klass.java.enumConstants
-                                is EnumerationColumnType<*> -> actualType.klass.java.enumConstants
-                                else -> null
-                            }
+            (entityKClass.objectInstance as Table).columns
+                .mapNotNull { column ->
+                    if (column.name == "id") return@mapNotNull null // Skip primary key field
 
-                        }
-                    }
+                    val camelCaseName = snakeToCamel(column.name)
+                    val properties = entityKClass.declaredMemberProperties.toMutableList()
+                    val property = properties.find { it.name == camelCaseName }
+                    val isFileUpload = property!!.annotations.any { it is FileUpload }
+                    val htmlInputType = getHtmlInputType(column.columnType, isFileUpload)
+
+                    @Suppress("UNCHECKED_CAST")
+                    val enumValues: Array<out Enum<*>>? =
+                        getEnumValues(htmlInputType, column)?.first as? Array<out Enum<*>>
 
                     mapOf(
-                        "name" to property.name,
+                        "name" to column.name,
                         "html_input_type" to htmlInputType,
                         "original_type" to property.returnType.toString(),
-                        "enum_values" to enumValues?.map { enumValue ->
-                            when (enumValue) {
-                                is Enum<*> -> enumValue.name
-                                else -> enumValue.toString()
-                            }
-                        }
+                        "enum_values" to enumValues?.map { enumValue -> enumValue.name }
                     )
                 }
         } else {
@@ -504,7 +464,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         return if (driverType == DriverType.EXPOSED) {
             when ((column as ExposedColumn<*>).columnType) {
                 is EntityIDColumnType<*> -> paramValue?.toIntOrNull()
-                is BooleanColumnType -> paramValue?.toBoolean() == false
+                is BooleanColumnType -> paramValue?.toBoolean()
                 is IntegerColumnType -> paramValue?.toIntOrNull()
                 is LongColumnType -> paramValue?.toLongOrNull()
                 is DecimalColumnType -> paramValue?.toBigDecimalOrNull()
@@ -536,28 +496,22 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     private suspend fun constructDataToSave(params: MultiPartData, dataToSave: MutableMap<String, Any>) {
         val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
         if (driverType == DriverType.EXPOSED) {
-            entityKClass.declaredMemberProperties.forEach { column ->
+            (entityKClass.objectInstance as Table).columns.forEach { column ->
                 val columnName = column.name
                 if (columnName.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
-                var actualType: IColumnType<*>? = null
-                transaction(this.database as Database) {
-                    val value = column.getter.call(entityKClass.objectInstance as Table)
-                    if (value is ExposedColumn<*>) {
-                        actualType = value.columnType
-                    }
-                }
-
                 val value = readMultipartData(params, column)
-                if (value != null) {
-                    if (commonPasswordFields.contains(columnName.lowercase())) {
-                        dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
-                    } else if (actualType is BlobColumnType) {
-                        dataToSave[columnName] = ExposedBlob(value as ByteArray)
-                    } else {
-                        dataToSave[columnName] = value
+                transaction(this.database as Database) {
+                    if (value != null) {
+                        if (commonPasswordFields.contains(columnName.lowercase())) {
+                            dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                        } else if (column.columnType is BlobColumnType) {
+                            dataToSave[columnName] = ExposedBlob(value as ByteArray)
+                        } else {
+                            dataToSave[columnName] = value
+                        }
                     }
                 }
             }
@@ -594,11 +548,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         var saveToDisk = false
         var path: String? = null
         val column = transaction(this.database as Database) {
-            val property = column as KProperty1<*, *>
             if (driverType == DriverType.EXPOSED) {
+                val property =
+                    entityKClass.declaredMemberProperties.find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
                 if (property.annotations.any { it is FileUpload }) {
                     saveToDisk = true
-                    val annotation = column.findAnnotation<FileUpload>()
+                    val annotation = property.findAnnotation<FileUpload>()
                     if (annotation != null) {
                         path = annotation.path
                     }
@@ -1117,7 +1072,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val dataToSave = mutableMapOf<String, Any>()
 
                     if (driverType == DriverType.EXPOSED) {
-                        (entityKClass.companionObjectInstance as IntEntityClass<IntEntity>).table.columns.forEach { column ->
+                        (entityKClass.objectInstance as Table).columns.forEach { column ->
                             val paramValue = params[column.name]
                             val value: Any? = getColumnValues(column, paramValue)
 
@@ -1125,7 +1080,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 dataToSave[column.name] = value
                             }
                         }
-
                         dao!!.update(dataToSave)
                     } else {
                         entityKClass.memberProperties.forEach { property ->

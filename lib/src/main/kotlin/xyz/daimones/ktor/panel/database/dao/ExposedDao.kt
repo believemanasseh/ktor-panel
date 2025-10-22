@@ -11,10 +11,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.camelToSnake
 import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
-import xyz.daimones.ktor.panel.snakeToCamel
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.full.memberProperties
 
 /**
  * ExposedDao is an implementation of DataAccessObjectInterface using Exposed ORM.
@@ -32,60 +29,23 @@ internal class ExposedDao<T : Any>(
         ?: throw IllegalArgumentException("Provided KClass must have an object instance that is a Table.")
 
     /**
-     * Copies properties from the source object to the target IntEntity.
-     * This is a utility function to avoid code duplication in save and update methods.
-     * 
-     * @param source The source object from which to copy properties.
-     * @param target The target IntEntity to which properties will be copied.
+     * Assigns values from a map to an InsertStatement or UpdateStatement.
+     *
+     * @param table The Exposed Table to which the data belongs.
+     * @param data The map containing field names and their corresponding values.
+     * @param insert The InsertStatement to which values will be assigned (if not null).
+     * @param update The UpdateStatement to which values will be assigned (if not null).
      */
-    private fun copyProperties(source: Any, target: Table) {
-        val targetProperties = target::class.memberProperties
-            .filterIsInstance<KMutableProperty1<*, *>>()
-            .associateBy { it.name }
-
-        if (source is Map<*, *>) {
-            // If the source is a Map, iterate through its key-value pairs.
-            for ((key, value) in source) {
-                var name = key as String
-                name = snakeToCamel(name)
-                if (name == "id") continue
-
-                targetProperties[name]?.let { targetProp ->
-                    @Suppress("UNCHECKED_CAST")
-                    val propClass = (targetProp as KMutableProperty1<Any, Any?>).returnType.classifier as? KClass<*>
-                    val finalValue = if (propClass?.java?.isEnum == true && value is String) {
-                        @Suppress("UNCHECKED_CAST")
-                        java.lang.Enum.valueOf(propClass.java as Class<out Enum<*>>, value)
-                    } else {
-                        value
-                    }
-                    targetProp.set(target, finalValue)
-                }
-            }
-        } else {
-            // This is the original logic that works for data classes.
-            val sourceProperties = source::class.memberProperties.associateBy { it.name }
-            for ((name, sourceProp) in sourceProperties) {
-                if (name == "id") continue
-
-                targetProperties[name]?.let { targetProp ->
-                    val value = sourceProp.call(source)
-                    @Suppress("UNCHECKED_CAST")
-                    (targetProp as KMutableProperty1<Any, Any?>).set(target, value)
-                }
-            }
-        }
-    }
-
     fun assignMapToInsertOrUpdate(
         table: Table,
         data: Map<String, Any>,
         insert: InsertStatement<Number>? = null,
         update: UpdateStatement? = null
     ) {
-        fun updateTable(insert: InsertStatement<Number>? = null, update: UpdateStatement? = null) {
+        fun populateTable(insert: InsertStatement<Number>? = null, update: UpdateStatement? = null) {
             for ((key, value) in data) {
                 if (key == "id") continue // skip id if auto-generated
+                if (value == "") continue // skip empty values
                 val column = table.columns.find { it.name == camelToSnake(key) }
                 if (column != null) {
                     val columnType = column.columnType
@@ -112,9 +72,9 @@ internal class ExposedDao<T : Any>(
             }
         }
         if (insert != null) {
-            updateTable(insert)
+            populateTable(insert)
         } else if (update != null) {
-            updateTable(update = update)
+            populateTable(update = update)
         }
     }
 
@@ -207,15 +167,18 @@ internal class ExposedDao<T : Any>(
         val idColumn = companion.primaryKey?.columns?.firstOrNull() as? Column<Any>
             ?: throw IllegalStateException("No primary key defined for table.")
         val id = data["id"].toString().toInt()
+
+        @Suppress("UNCHECKED_CAST")
+        val entityId = EntityID(id, idColumn.table as IdTable<Int>)
         withContext(Dispatchers.IO) {
             transaction(this@ExposedDao.database) {
-                companion.update({ idColumn eq id }) {
+                companion.update({ idColumn eq entityId }) {
                     assignMapToInsertOrUpdate(companion, data, update = it)
                 }
 
             }
         }
-        val entity = this@ExposedDao.findById(id)
+        val entity = this.findById(entityId, false)
         @Suppress("UNCHECKED_CAST")
         return entity as T
     }
