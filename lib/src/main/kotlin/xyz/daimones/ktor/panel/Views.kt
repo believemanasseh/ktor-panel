@@ -996,6 +996,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_textarea" to (inputType == "textarea"),
                                     "is_readonly" to isReadOnly,
                                     "is_file" to (inputType == "file"),
+                                    "is_blob" to (originalType == "BasicBinaryColumnType" || originalType == "BlobColumnType" || originalType == "ByteArray"),
                                     "is_general_input" to
                                             !listOf("checkbox", "select", "textarea", "hidden", "file")
                                                 .contains(inputType)
