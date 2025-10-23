@@ -1,11 +1,13 @@
 package xyz.daimones.ktor.panel.database.serialization
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import org.bson.codecs.kotlinx.BsonDecoder
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -20,7 +22,26 @@ object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
         encoder.encodeString(value.format(formatter))
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     override fun deserialize(decoder: Decoder): LocalDateTime {
-        return LocalDateTime.parse(decoder.decodeString(), formatter)
+        return when (decoder) {
+            is BsonDecoder ->
+                try {
+                    // Try to decode as string first
+                    LocalDateTime.parse(decoder.decodeString(), formatter)
+                } catch (e: org.bson.BsonInvalidOperationException) {
+                    // Fallback: decode as BSON DateTime
+                    val bsonValue = decoder.decodeBsonValue()
+                    val millis = bsonValue.asDateTime().value
+                    val ldt = java.time.Instant.ofEpochMilli(millis)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDateTime()
+                    LocalDateTime.parse(ldt.toString(), formatter)
+                }
+
+            else -> {
+                LocalDateTime.parse(decoder.decodeString(), formatter)
+            }
+        }
     }
 }

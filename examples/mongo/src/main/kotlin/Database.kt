@@ -23,7 +23,13 @@ suspend fun Application.configureDatabase(): MongoDatabase {
     // Create a collection and insert a sample user
     val collection = database.getCollection<User>("user")
     val hashedPassword = BCrypt.hashpw("password", BCrypt.gensalt())
-    val user = User(email = "test@email.com", firstName = "test", lastName = "user", password = hashedPassword)
+    val user = User(
+        email = "test@email.com",
+        firstName = "test",
+        lastName = "user",
+        image = "uploads/image.png",
+        password = hashedPassword
+    )
     val res = collection.insertOne(user)
     println("Inserted user with id: ${res.insertedId}")
 

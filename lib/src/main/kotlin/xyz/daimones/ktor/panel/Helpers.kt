@@ -61,6 +61,11 @@ internal fun snakeToCamel(snake: String): String {
     }.joinToString("")
 }
 
+internal fun camelToSnake(camel: String): String {
+    val regex = "(?=[A-Z])".toRegex()
+    return camel.split(regex).joinToString("_") { it.lowercase() }
+}
+
 /**
  * Registers the panel admin entity with the Hibernate persistence configuration.
  *

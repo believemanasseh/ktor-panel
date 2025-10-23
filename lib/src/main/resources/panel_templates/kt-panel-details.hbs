@@ -32,7 +32,7 @@
 
     {{#fields}} {{! Check if fields list is not empty before rendering form }}
     <form method="POST" action="/{{configuration.url}}/{{entityPath}}/edit/{{idValue}}"
-          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" enctype="multipart/form-data">
     {{/fields}}
     {{#fields}}
         <div class="mb-6">
@@ -48,10 +48,8 @@
 
             {{#is_checkbox}}
                 <div class="mt-2">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="{{name}}" id="{{name}}" value="true"
-                               {{#value}}checked{{/value}} class="form-checkbox h-5 w-5 text-blue-600">
-                    </label>
+                    <input type="checkbox" name="{{name}}" id="{{name}}" value="true"
+                           {{#value}}checked{{/value}} class="form-checkbox h-5 w-5 text-blue-600">
                 </div>
             {{/is_checkbox}}
 
@@ -69,6 +67,15 @@
                     {{/options}}
                 </select>
             {{/is_select}}
+
+            {{#is_file}}
+                <input type="file" name="{{name}}" id="{{name}}"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                {{^is_blob}}
+                    <p class="mt-1">Current file: <a class="text-indigo-600 hover:text-indigo-700"
+                                                     href="/uploads/{{value}}" target="_blank">{{value}}</a></p>
+                {{/is_blob}}
+            {{/is_file}}
 
             {{#is_textarea}}
                 <textarea name="{{name}}" id="{{name}}" rows="4"

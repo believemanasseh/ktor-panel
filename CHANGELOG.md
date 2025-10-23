@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0] - Dev
+
+### Added
+
+- Blob data handling —— Easily manage/upload files, images etc.
+
+### Changed
+
+- Replaced Exposed's entity classes with table objects for querying and data manipulation.
+
+### Fixed
+
+- Resolved issue with serialisation of date/time fields in MongoDB entities.
+
 ## [0.3.2] - 2025-08-27
 
 ### Fixed

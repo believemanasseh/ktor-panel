@@ -27,7 +27,9 @@ fun Application.configureDatabases(): EntityManagerFactory {
         email = "test@email.com",
         firstName = "test",
         lastName = "user",
-        password = hashedPassword
+        password = hashedPassword,
+        image = "uploads/image.png",
+        thumbnail = "thumbnail data".toByteArray(),
     )
     val entityManager = entityManagerFactory.createEntityManager()
     try {

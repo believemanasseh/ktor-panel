@@ -17,5 +17,5 @@ fun Application.module() {
     val configuration =
         Configuration(setAuthentication = true, favicon = "/static/favicon.ico")
     val admin = Admin(this, configuration, database)
-    admin.addView(EntityView(User::class))
+    admin.addView(EntityView(Users::class))
 }

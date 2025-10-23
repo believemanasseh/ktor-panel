@@ -1,6 +1,7 @@
 package com.example
 
 import jakarta.persistence.*
+import xyz.daimones.ktor.panel.database.FileUpload
 import java.time.LocalDateTime
 
 enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
@@ -30,6 +31,14 @@ class User(
     @Enumerated(EnumType.STRING)
     @Column(name = "role", length = 15, nullable = false)
     var role: Role = Role.SUPER_ADMIN,
+
+    @FileUpload(storage = "local", path = "/uploads")
+    @Column(name = "image", nullable = true)
+    var image: String? = null,
+
+    @Lob
+    @Column(name = "thumbnail", nullable = true)
+    var thumbnail: ByteArray? = null,
 
     @Column(name = "created", nullable = false, updatable = false)
     var created: LocalDateTime = LocalDateTime.now(),
