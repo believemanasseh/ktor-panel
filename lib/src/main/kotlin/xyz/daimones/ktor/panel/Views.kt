@@ -591,7 +591,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         val partData: PartData? = params.readPart()
         var value: Any? = null
         if (partData is PartData.FormItem) {
-            val paramValue = partData.value
+            var paramValue = partData.value
+            if (paramValue == "on") {
+                paramValue = "true"
+            } else if (paramValue == "off") {
+                paramValue = "false"
+            }
             value = getColumnValues(column!!, paramValue)
         } else if (partData is PartData.FileItem) {
             val channel = partData.provider()
