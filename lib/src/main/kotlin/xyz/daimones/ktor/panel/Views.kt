@@ -478,6 +478,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 Long::class -> paramValue?.toLongOrNull()
                 Boolean::class -> paramValue?.toBoolean() == true
                 LocalDateTime::class -> paramValue?.let { LocalDateTime.parse(it) }
+                ByteArray::class -> paramValue?.toByteArray()
                 else -> paramValue
             }
         }
@@ -493,16 +494,21 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * @param params The parameters received from the request
      * @param dataToSave The mutable map to populate with data to save
      */
-    private suspend fun constructDataToSave(params: MultiPartData, dataToSave: MutableMap<String, Any>) {
+    private suspend fun constructDataToSave(
+        params: MultiPartData,
+        dataToSave: MutableMap<String, Any>,
+        view: String = "details"
+    ) {
         val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
         if (driverType == DriverType.EXPOSED) {
             (entityKClass.objectInstance as Table).columns.forEach { column ->
                 val columnName = column.name
-                if (columnName.equals("id", ignoreCase = true)) {
+                if (view == "create" && columnName.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
                 val value = readMultipartData(params, column)
+
                 transaction(this.database as Database) {
                     if (value != null) {
                         if (commonPasswordFields.contains(columnName.lowercase())) {
@@ -516,13 +522,15 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 }
             }
         } else {
-            entityKClass.memberProperties.forEach { property ->
+            entityKClass.declaredMemberProperties.forEach { property ->
                 val columnName = property.name
-                if (columnName.equals("id", ignoreCase = true)) {
+                if (view == "create" && columnName.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
+
                 val value = readMultipartData(params, property)
+
                 if (value != null) {
                     if (commonPasswordFields.contains(columnName.lowercase())) {
                         dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
@@ -547,10 +555,29 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     private suspend fun readMultipartData(params: MultiPartData, column: Any): Any? {
         var saveToDisk = false
         var path: String? = null
-        val column = transaction(this.database as Database) {
+        val column =
             if (driverType == DriverType.EXPOSED) {
+                transaction(this.database as Database) {
+                    val idProp =
+                        entityKClass.memberProperties.firstOrNull { it.name == "id" } ?: throw IllegalArgumentException(
+                            "Exposed Entity must have an 'id' property"
+                        )
+                    val property =
+                        entityKClass.declaredMemberProperties.plus(idProp)
+                            .find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
+                    if (property.annotations.any { it is FileUpload }) {
+                        saveToDisk = true
+                        val annotation = property.findAnnotation<FileUpload>()
+                        if (annotation != null) {
+                            path = annotation.path
+                        }
+                    }
+                    property.getter.call(entityKClass.objectInstance as Table)
+                }
+            } else {
+                @Suppress("UNCHECKED_CAST")
                 val property =
-                    entityKClass.declaredMemberProperties.find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
+                    entityKClass.declaredMemberProperties.find { it.name == (column as KProperty1<T, *>).name } as KProperty1<T, *>
                 if (property.annotations.any { it is FileUpload }) {
                     saveToDisk = true
                     val annotation = property.findAnnotation<FileUpload>()
@@ -558,14 +585,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         path = annotation.path
                     }
                 }
-                property.getter.call(entityKClass.objectInstance as Table)
-        } else {
-                if ((column)::class.annotations.any { it is FileUpload }) {
-                    saveToDisk = true
-                }
                 column
             }
-        }
 
         val partData: PartData? = params.readPart()
         var value: Any? = null
@@ -841,13 +862,13 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     var dataToSave = mutableMapOf<String, Any>()
                     val id: Any?
                     if (driverType == DriverType.EXPOSED) {
-                        constructDataToSave(params, dataToSave)
+                        constructDataToSave(params, dataToSave, "create")
                         val instance = dao!!.save(dataToSave)
                         @Suppress("UNCHECKED_CAST")
                         id = (instance as Map<String, Any?>)["id"]
                             ?: throw IllegalArgumentException("Saved entity does not have an ID.")
                     } else {
-                        constructDataToSave(params, dataToSave)
+                        constructDataToSave(params, dataToSave, "create")
                         val constructor = entityKClass.primaryConstructor
                             ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
 
@@ -924,8 +945,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         } catch (e: NumberFormatException) {
                             call.parameters["id"] ?: throw IllegalArgumentException("ObjectID parameter is required")
                         }
-                        val entity = dao!!.findById(idValue, true)
+
                         val obj = if (driverType == DriverType.EXPOSED) {
+                            val entity = dao!!.findById(idValue, true)
                             (entityKClass.objectInstance as Table).columns.associate { column ->
                                 val camelCaseName = snakeToCamel(column.name)
                                 val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
@@ -955,14 +977,18 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                         )
                             }
                         } else {
+                            val entity = dao!!.findById(idValue)
                             entityKClass.memberProperties.associate { property ->
                                 val value = property.call(entity)
-                                val actualValue = if (value is LocalDateTime) {
-                                    value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                                var actualValue = if (value is LocalDateTime) {
+                                    value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                                 } else {
                                     value
                                 }
                                 val isFileUpload = property.annotations.any { it is FileUpload }
+                                if (isFileUpload) {
+                                    actualValue = (actualValue as String).split("/").last()
+                                }
                                 val htmlInputType = getHtmlInputType(property.returnType, isFileUpload)
                                 val enumValues: Pair<Array<out Any>?, String>? =
                                     getEnumValues(htmlInputType, property.returnType)
@@ -996,7 +1022,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     "is_textarea" to (inputType == "textarea"),
                                     "is_readonly" to isReadOnly,
                                     "is_file" to (inputType == "file"),
-                                    "is_blob" to (originalType == "BasicBinaryColumnType" || originalType == "BlobColumnType" || originalType == "ByteArray"),
+                                    "is_blob" to (
+                                            originalType == "BasicBinaryColumnType"
+                                                    || originalType == "BlobColumnType"
+                                                    || originalType == "kotlin.ByteArray?"
+                                                    || originalType == "kotlin.ByteArray"
+                                            ),
                                     "is_general_input" to
                                             !listOf("checkbox", "select", "textarea", "hidden", "file")
                                                 .contains(inputType)
@@ -1061,7 +1092,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         return@post
                     }
 
-                    val params = call.receiveParameters()
+                    val params = call.receiveMultipart()
 
                     try {
                         call.parameters["id"]?.toInt()
@@ -1073,29 +1104,16 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val dataToSave = mutableMapOf<String, Any>()
 
                     if (driverType == DriverType.EXPOSED) {
-                        (entityKClass.objectInstance as Table).columns.forEach { column ->
-                            val paramValue = params[column.name]
-                            val value: Any? = getColumnValues(column, paramValue)
-
-                            if (value != null) {
-                                dataToSave[column.name] = value
-                            }
-                        }
+                        constructDataToSave(params, dataToSave)
                         dao!!.update(dataToSave)
                     } else {
-                        entityKClass.memberProperties.forEach { property ->
-                            val paramValue = params[property.name]
-                            val value: Any? = getColumnValues(property, paramValue)
-
-                            if (value != null) {
-                                dataToSave[property.name] = value
-                            }
-                        }
+                        constructDataToSave(params, dataToSave)
                         val constructor = entityKClass.primaryConstructor
                             ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
 
                         val args = constructor.parameters.associateWith { param ->
                             val value = dataToSave[param.name]
+
                             when (param.type.classifier) {
                                 ObjectId::class -> (value as? String)?.let { ObjectId(it) }
                                 LocalDateTime::class -> {
@@ -1108,7 +1126,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                     }
 
                                 }
-
                                 is KClass<*> -> if ((param.type.classifier as KClass<*>).java.isEnum) {
                                     value.let { enumValue ->
                                         @Suppress("UNCHECKED_CAST")

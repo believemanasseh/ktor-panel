@@ -32,7 +32,7 @@
 
     {{#fields}} {{! Check if fields list is not empty before rendering form }}
     <form method="POST" action="/{{configuration.url}}/{{entityPath}}/edit/{{idValue}}"
-          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" enctype="multipart/form-data">
     {{/fields}}
     {{#fields}}
         <div class="mb-6">
