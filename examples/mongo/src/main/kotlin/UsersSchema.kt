@@ -22,7 +22,6 @@ data class User(
     val role: Role = Role.SUPER_ADMIN,
     @FileUpload(storage = "local", path = "/uploads")
     val image: String? = null,
-    val thumbnail: ByteArray? = null,
     @Serializable(with = LocalDateTimeSerializer::class)
     val created: LocalDateTime = LocalDateTime.now(),
     @Serializable(with = LocalDateTimeSerializer::class)

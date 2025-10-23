@@ -28,7 +28,8 @@ fun Application.configureDatabases(): EntityManagerFactory {
         firstName = "test",
         lastName = "user",
         password = hashedPassword,
-        image = "/uploads/image.png"
+        image = "uploads/image.png",
+        thumbnail = "thumbnail data".toByteArray(),
     )
     val entityManager = entityManagerFactory.createEntityManager()
     try {

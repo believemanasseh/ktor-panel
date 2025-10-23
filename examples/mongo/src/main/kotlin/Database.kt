@@ -27,7 +27,7 @@ suspend fun Application.configureDatabase(): MongoDatabase {
         email = "test@email.com",
         firstName = "test",
         lastName = "user",
-        image = "/uploads/image.png",
+        image = "uploads/image.png",
         password = hashedPassword
     )
     val res = collection.insertOne(user)
