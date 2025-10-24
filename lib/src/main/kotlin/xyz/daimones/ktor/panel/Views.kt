@@ -192,8 +192,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val camelCaseName = snakeToCamel(column.name)
                     val properties = entityKClass.declaredMemberProperties.toMutableList()
                     val property = properties.find { it.name == camelCaseName }
-                    val isFileUpload = property!!.annotations.any { it is FileUpload }
-                    val htmlInputType = getHtmlInputType(column.columnType, isFileUpload)
+                    val isFileUploadField = property!!.annotations.any { it is FileUploadField }
+                    val htmlInputType = getHtmlInputType(column.columnType, isFileUploadField)
 
                     @Suppress("UNCHECKED_CAST")
                     val enumValues: Array<out Enum<*>>? =
@@ -209,8 +209,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         } else {
             entityKClass.memberProperties.map { property ->
                 val columnName = property.name
-                val isFileUpload = property.annotations.any { it is FileUpload }
-                val htmlInputType = getHtmlInputType(property.returnType, isFileUpload)
+                val isFileUploadField = property.annotations.any { it is FileUploadField }
+                val htmlInputType = getHtmlInputType(property.returnType, isFileUploadField)
                 val enumValues: Array<out Any>? = when (property.returnType.classifier) {
                     is KClass<*> -> {
                         val kClass = property.returnType.classifier as KClass<*>
@@ -246,14 +246,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * in the admin panel.
      *
      * @param column The column for which to determine the HTML input type
-     * @param isFileUpload Boolean indicating if the column is annotated for file upload
+     * @param isFileUploadField Boolean indicating if the column is annotated for file upload
      * @return A string representing the HTML input type (e.g., "text", "number", "checkbox", etc.)
      */
-    private fun <T : Any> getHtmlInputType(column: T, isFileUpload: Boolean): String {
+    private fun <T : Any> getHtmlInputType(column: T, isFileUploadField: Boolean): String {
         return if (column is ColumnType<*>) {
             when (column) {
                 is VarCharColumnType -> {
-                    if (isFileUpload) {
+                    if (isFileUploadField) {
                         "file"
                     } else {
                         "text"
@@ -272,7 +272,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             val classifier = column.classifier
             when {
                 classifier == String::class -> {
-                    if (isFileUpload) {
+                    if (isFileUploadField) {
                         "file"
                     } else {
                         "text"
@@ -531,7 +531,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val property =
                         entityKClass.declaredMemberProperties.plus(idProp)
                             .find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
-                    val annotation = property.findAnnotation<FileUpload>()
+                    val annotation = property.findAnnotation<FileUploadField>()
                     if (annotation != null) {
                         saveToDisk = true
                         path = annotation.path
@@ -542,7 +542,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 @Suppress("UNCHECKED_CAST")
                 val property =
                     entityKClass.declaredMemberProperties.find { it.name == (column as KProperty1<T, *>).name } as KProperty1<T, *>
-                val annotation = property.findAnnotation<FileUpload>()
+                val annotation = property.findAnnotation<FileUploadField>()
                 if (annotation != null) {
                     saveToDisk = true
                     path = annotation.path
@@ -933,11 +933,11 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 if (actualValue is LocalDateTime) {
                                     actualValue = actualValue.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                                 }
-                                val isFileUpload = property!!.annotations.any { it is FileUpload }
-                                if (isFileUpload) {
+                                val isFileUploadField = property!!.annotations.any { it is FileUploadField }
+                                if (isFileUploadField) {
                                     actualValue = (actualValue as String).split("/").last()
                                 }
-                                val htmlInputType = getHtmlInputType(column.columnType, isFileUpload)
+                                val htmlInputType = getHtmlInputType(column.columnType, isFileUploadField)
                                 val enumValues: Pair<Array<out Any>?, String>? = getEnumValues(htmlInputType, column)
                                 column.name to
                                         mapOf(
@@ -957,11 +957,11 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                                 } else {
                                     value
                                 }
-                                val isFileUpload = property.annotations.any { it is FileUpload }
-                                if (isFileUpload) {
+                                val isFileUploadField = property.annotations.any { it is FileUploadField }
+                                if (isFileUploadField) {
                                     actualValue = (actualValue as String).split("/").last()
                                 }
-                                val htmlInputType = getHtmlInputType(property.returnType, isFileUpload)
+                                val htmlInputType = getHtmlInputType(property.returnType, isFileUploadField)
                                 val enumValues: Pair<Array<out Any>?, String>? =
                                     getEnumValues(htmlInputType, property.returnType)
                                 property.name to

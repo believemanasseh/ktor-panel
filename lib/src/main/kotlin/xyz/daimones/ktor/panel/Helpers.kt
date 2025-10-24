@@ -61,6 +61,16 @@ internal fun snakeToCamel(snake: String): String {
     }.joinToString("")
 }
 
+/**
+ * Converts a camelCase string to snake_case.
+ *
+ * This function takes a string in camelCase format and converts it to snake_case format.
+ * Each uppercase letter is preceded by an underscore and converted to lowercase.
+ * This is useful for converting programming identifiers to database column names or other formats.
+ *
+ * @param camel The camelCase string to convert
+ * @return The converted snake_case string
+ */
 internal fun camelToSnake(camel: String): String {
     val regex = "(?=[A-Z])".toRegex()
     return camel.split(regex).joinToString("_") { it.lowercase() }
@@ -90,7 +100,7 @@ fun registerAdminEntity(config: HibernatePersistenceConfiguration) {
  * @return The custom template for the specified view
  * @throws IllegalArgumentException if the view type is unknown
  */
-fun getCustomTemplate(view: String, configuration: Configuration): String? {
+internal fun getCustomTemplate(view: String, configuration: Configuration): String? {
     return when (view) {
         "details" -> configuration.customDetailsTemplate
         "list" -> configuration.customListTemplate
