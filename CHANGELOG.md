@@ -4,11 +4,14 @@
 
 ### Added
 
-- Blob data handling —— Easily manage/upload files, images etc.
+- Support for file upload fields, including disk storage and byte array handling, with annotation-based configuration.
+- Support for property filtering for list views, supporting custom field selection via configuration.
+- Support for annotation-based configuration for file upload, primary key and password fields.
 
 ### Changed
 
 - Replaced Exposed's entity classes with table objects for querying and data manipulation.
+- Improved header ordering for list views to prioritise primary key fields.
 
 ### Fixed
 
