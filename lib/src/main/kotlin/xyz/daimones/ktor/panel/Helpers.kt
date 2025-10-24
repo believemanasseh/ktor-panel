@@ -100,7 +100,7 @@ fun registerAdminEntity(config: HibernatePersistenceConfiguration) {
  * @return The custom template for the specified view
  * @throws IllegalArgumentException if the view type is unknown
  */
-fun getCustomTemplate(view: String, configuration: Configuration): String? {
+internal fun getCustomTemplate(view: String, configuration: Configuration): String? {
     return when (view) {
         "details" -> configuration.customDetailsTemplate
         "list" -> configuration.customListTemplate

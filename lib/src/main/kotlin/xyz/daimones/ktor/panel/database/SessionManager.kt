@@ -2,7 +2,7 @@ package xyz.daimones.ktor.panel.database
 
 import java.util.concurrent.ConcurrentHashMap
 
-object InMemorySessionManager {
+internal object InMemorySessionManager {
     private data class Session(val username: String, val expiresAt: Long)
 
     private val sessions = ConcurrentHashMap<String, Session>()
