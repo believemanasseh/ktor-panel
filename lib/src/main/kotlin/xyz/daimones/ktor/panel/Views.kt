@@ -11,7 +11,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.cio.*
 import io.ktor.utils.io.*
-import jakarta.persistence.Column
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Id
 import kotlinx.coroutines.runBlocking
@@ -22,10 +21,7 @@ import org.jetbrains.exposed.sql.javatime.JavaLocalDateTimeColumnType
 import org.jetbrains.exposed.sql.statements.api.ExposedBlob
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.mindrot.jbcrypt.BCrypt
-import xyz.daimones.ktor.panel.database.DataAccessObjectInterface
-import xyz.daimones.ktor.panel.database.DriverType
-import xyz.daimones.ktor.panel.database.FileUpload
-import xyz.daimones.ktor.panel.database.InMemorySessionManager
+import xyz.daimones.ktor.panel.database.*
 import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.dao.JpaDao
 import xyz.daimones.ktor.panel.database.dao.MongoDao
@@ -120,88 +116,59 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      *
      * This method sets up the headers based on the entity type, either from Exposed Entity class or
      * JPA Entity annotations. It is called during the initialisation of the BaseView.
+     *
+     * @param configuration The configuration settings for the admin panel
      */
-    fun setHeaders(): List<String> {
-        fun <T> reorderProperties(
+    fun setHeaders(configuration: Configuration): List<String> {
+        fun <T> reorderProperty(
             properties: MutableList<KProperty1<T, *>>, idProperty: KProperty1<T, *>?,
-            createdProperty: KProperty1<T, *>?,
-            modifiedProperty: KProperty1<T, *>?
         ) {
             if (idProperty != null) {
                 properties.remove(idProperty)
                 properties.add(0, idProperty)
             }
-            if (createdProperty != null) {
-                properties.remove(createdProperty)
-                properties.add(properties.size, createdProperty)
-            }
-            if (modifiedProperty != null) {
-                properties.remove(modifiedProperty)
-                properties.add(properties.size, modifiedProperty)
+        }
+
+        fun filterProperties(
+            exposedProperties: MutableList<ExposedColumn<*>>? = null,
+            otherProperties: MutableList<KProperty1<T, *>>? = null,
+            primaryKeyProperty: KProperty1<T, *>? = null,
+        ): List<String> {
+            if (configuration.listFields != null && configuration.listFields.isNotEmpty() && exposedProperties != null) {
+                val selectedProperties =
+                    exposedProperties.filter { it -> configuration.listFields.contains(snakeToCamel(it.name)) || it.name == "id" || it.name == primaryKeyProperty?.name }
+                return selectedProperties.map { it.name }
+            } else if (configuration.listFields == null && exposedProperties != null) {
+                return exposedProperties.map { it.name }
+            } else if (configuration.listFields != null && configuration.listFields.isNotEmpty() && otherProperties != null) {
+                val selectedProperties =
+                    otherProperties.filter { it -> configuration.listFields.contains(it.name) || it.name == "id" || it.annotations.any { it is PrimaryKeyField } }
+                return selectedProperties.map { it.name }
+            } else if (configuration.listFields == null && otherProperties != null) {
+                return otherProperties.map { it.name }
+            } else if (exposedProperties != null) {
+                return exposedProperties.map { it.name }
+            } else {
+                return otherProperties!!.map { it.name }
             }
         }
 
         return if (driverType == DriverType.EXPOSED) {
             val properties = (entityKClass.objectInstance as Table).columns.toMutableList()
-            properties.map { it.name }
+            val primaryKeyProperty =
+                entityKClass.declaredMemberProperties.find { p -> p.annotations.any { it is PrimaryKeyField } }
+            filterProperties(properties, primaryKeyProperty = primaryKeyProperty)
         } else if (driverType == DriverType.JPA) {
             val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
             val idProperty = properties.find { p -> p.javaField?.isAnnotationPresent(Id::class.java) == true }
-            val createdProperty = properties.find { p ->
-                val names = setOf(
-                    "created",
-                    "created_at",
-                    "createdAt",
-                    "creationDate",
-                    "createdOn",
-                    "creation_date",
-                    "created_on"
-                )
-                names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
-            }
-            val modifiedProperty = properties.find { p ->
-                val names = setOf(
-                    "modified",
-                    "updated_at",
-                    "updatedAt",
-                    "lastModified",
-                    "lastUpdated",
-                    "last_modified",
-                    "last_updated"
-                )
-                names.contains(p.javaField?.getAnnotation(Column::class.java)?.name)
-            }
-            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
-            properties.map { it.name }
+            reorderProperty(properties, idProperty)
+            filterProperties(otherProperties = properties)
         } else if (driverType == DriverType.MONGO) {
             val properties = entityKClass.memberProperties.sortedBy { it.name }.toMutableList()
-            val idProperty = properties.find { p -> p.javaField?.name == "id" }
-            val createdProperty = properties.find { p ->
-                val names = setOf(
-                    "created",
-                    "created_at",
-                    "createdAt",
-                    "creationDate",
-                    "createdOn",
-                    "creation_date",
-                    "created_on"
-                )
-                names.contains(p.javaField?.name)
-            }
-            val modifiedProperty = properties.find { p ->
-                val names = setOf(
-                    "modified",
-                    "updated_at",
-                    "updatedAt",
-                    "lastModified",
-                    "lastUpdated",
-                    "last_modified",
-                    "last_updated"
-                )
-                names.contains(p.javaField?.name)
-            }
-            reorderProperties(properties, idProperty, createdProperty, modifiedProperty)
-            properties.map { it.name }
+            val idProperty =
+                properties.find { p -> p.javaField?.name == "id" || p.annotations.any { it is PrimaryKeyField } }
+            reorderProperty(properties, idProperty)
+            filterProperties(otherProperties = properties)
         } else {
             throw IllegalArgumentException("Model must be an IntEntityClass or annotated with @Entity")
         }
@@ -332,9 +299,11 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * This method queries the database for all records in the specified entity and returns a list of
      * maps containing the ID and column values for each record.
      *
+     * @param configuration The configuration settings for the admin panel
+     *
      * @return A list of maps where each map represents a record with its ID and column values
      */
-    private suspend fun getTableDataValues(): List<Map<String, Any?>?> {
+    private suspend fun getTableDataValues(configuration: Configuration): List<Map<String, Any?>?> {
         if (driverType == DriverType.EXPOSED) {
             @Suppress("UNCHECKED_CAST")
             dao!!.findAll() as List<ResultRow>
@@ -343,8 +312,15 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             @Suppress("UNCHECKED_CAST")
             val rows = dao!!.findAll() as List<ResultRow>
             return rows.map { row ->
-                val rowData = table.columns.associate { col ->
-                    col.name to row[col]
+                val rowData = if (configuration.listFields != null && configuration.listFields.isNotEmpty()) {
+                    table.columns.filter { configuration.listFields.contains(snakeToCamel(it.name)) || it.name == "id" }
+                        .associate { col ->
+                            col.name to row[col]
+                        }
+                } else {
+                    table.columns.associate { col ->
+                        col.name to row[col]
+                    }
                 }
                 mapOf("id" to rowData.values.toList()[0], "nums" to rowData.values.toList())
             }
@@ -352,46 +328,34 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
             val entities = dao!!.findAll()
             return entities.map { entity ->
                 var rowData = mutableListOf<Any?>()
-                val properties = entityKClass.memberProperties.toMutableList()
+                val properties = entityKClass.declaredMemberProperties.toMutableList()
+                var primaryKeyField: String? = null
                 properties.forEach { property ->
+                    if (configuration.listFields != null && configuration.listFields.isNotEmpty() && (!configuration.listFields.contains(
+                            property.name
+                        ) && property.name != "id")
+                    ) {
+                        return@forEach
+                    }
                     val value = property.call(entity)
                     val actualValue = if (value is LocalDateTime) {
-                        value.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                        value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                     } else {
                         value
+                    }
+                    val annotation = property.findAnnotation<PrimaryKeyField>()
+                    if (annotation != null) {
+                        primaryKeyField = property.name
                     }
                     rowData.add(Pair(property.name, (actualValue ?: "null")))
                 }
 
-
-                val createdNames = setOf(
-                    "created",
-                    "created_at",
-                    "createdAt",
-                    "creationDate",
-                    "createdOn",
-                    "creation_date",
-                    "created_on"
-                )
-                val modifiedNames = setOf(
-                    "modified",
-                    "updated_at",
-                    "updatedAt",
-                    "lastModified",
-                    "lastUpdated",
-                    "last_modified",
-                    "last_updated"
-                )
                 val map: MutableMap<Int, String> = mutableMapOf()
                 var index = 1
                 for (data in rowData) {
                     if (data is Pair<*, *>) {
-                        if (data.first == "id") {
+                        if (data.first == "id" || data.first == primaryKeyField) {
                             map[0] = data.second.toString()
-                        } else if (createdNames.contains(data.first)) {
-                            map[rowData.size - 1] = data.second.toString()
-                        } else if (modifiedNames.contains(data.first)) {
-                            map[rowData.size - 2] = data.second.toString()
                         } else {
                             map[index] = data.second.toString()
                             index++
@@ -499,7 +463,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         dataToSave: MutableMap<String, Any>,
         view: String = "details"
     ) {
-        val commonPasswordFields = setOf("password", "passwd", "pass", "pwd")
         if (driverType == DriverType.EXPOSED) {
             (entityKClass.objectInstance as Table).columns.forEach { column ->
                 val columnName = column.name
@@ -511,7 +474,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 transaction(this.database as Database) {
                     if (value != null) {
-                        if (commonPasswordFields.contains(columnName.lowercase())) {
+                        val property =
+                            entityKClass.declaredMemberProperties.find { it.name == snakeToCamel(columnName) }
+                        if (property?.findAnnotation<PasswordField>() != null || columnName == "password") {
                             dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
                         } else if (column.columnType is BlobColumnType) {
                             dataToSave[columnName] = ExposedBlob(value as ByteArray)
@@ -532,7 +497,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 val value = readMultipartData(params, property)
 
                 if (value != null) {
-                    if (commonPasswordFields.contains(columnName.lowercase())) {
+                    val property = entityKClass.declaredMemberProperties.find { it.name == columnName }
+                    if (property?.findAnnotation<PasswordField>() != null || columnName == "password") {
                         dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
                     } else {
                         dataToSave[columnName] = value
@@ -565,12 +531,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val property =
                         entityKClass.declaredMemberProperties.plus(idProp)
                             .find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
-                    if (property.annotations.any { it is FileUpload }) {
+                    val annotation = property.findAnnotation<FileUpload>()
+                    if (annotation != null) {
                         saveToDisk = true
-                        val annotation = property.findAnnotation<FileUpload>()
-                        if (annotation != null) {
-                            path = annotation.path
-                        }
+                        path = annotation.path
                     }
                     property.getter.call(entityKClass.objectInstance as Table)
                 }
@@ -578,12 +542,10 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 @Suppress("UNCHECKED_CAST")
                 val property =
                     entityKClass.declaredMemberProperties.find { it.name == (column as KProperty1<T, *>).name } as KProperty1<T, *>
-                if (property.annotations.any { it is FileUpload }) {
+                val annotation = property.findAnnotation<FileUpload>()
+                if (annotation != null) {
                     saveToDisk = true
-                    val annotation = property.findAnnotation<FileUpload>()
-                    if (annotation != null) {
-                        path = annotation.path
-                    }
+                    path = annotation.path
                 }
                 column
             }
@@ -592,20 +554,25 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         var value: Any? = null
         if (partData is PartData.FormItem) {
             var paramValue = partData.value
+
+            // Handle checkbox values
             if (paramValue == "on") {
                 paramValue = "true"
             } else if (paramValue == "off") {
                 paramValue = "false"
             }
+
             value = getColumnValues(column!!, paramValue)
         } else if (partData is PartData.FileItem) {
             val channel = partData.provider()
             if (saveToDisk) {
+                // Save file to disk
                 val fileName = partData.originalFileName as String
                 val file = File("${path?.slice(1..path.length - 1)}/$fileName")
                 channel.copyAndClose(file.writeChannel())
                 value = file.path
             } else {
+                // Read file content into a ByteArray
                 val buffer = ByteArray(4096)
                 value = mutableListOf<Byte>()
                 while (!channel.isClosedForRead) {
@@ -763,7 +730,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 get {
                     val isValid = validateSession(call)
                     if (isValid) {
-                        val tableDataValues = getTableDataValues()
+                        val tableDataValues = getTableDataValues(configuration)
                         val tablesData =
                             mapOf(
                                 "headers" to headers,
@@ -843,7 +810,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                         data["fields"] = fieldsForTemplate
                         data["tablesData"] =
-                            mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues()))
+                            mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues(configuration)))
 
                         call.respond(
                             configuration.templateRenderer.render(
@@ -1291,7 +1258,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         } else {
             throw IllegalArgumentException("Either database or entityManagerFactory must be provided")
         }
-        super.headers = super.setHeaders()
+        super.headers = super.setHeaders(configuration)
 
         this.setAuthentication(configuration, entityManagerFactory)
 
@@ -1299,8 +1266,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
             configuration,
             mapOf(
                 "tables" to tableNames.map { it.lowercase() },
-                "configuration" to configuration,
-                "isAuthenticated" to configuration.setAuthentication
+                "configuration" to configuration
             )
         )
 
