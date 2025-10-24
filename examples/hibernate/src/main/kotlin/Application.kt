@@ -13,7 +13,7 @@ fun Application.module() {
     configureRouting()
     val entityManagerFactory = configureDatabases()
     // Configure and initialise admin interface library
-    val configuration = Configuration(setAuthentication = true)
+    val configuration = Configuration(setAuthentication = true, listFields = listOf("email", "isActive"))
     val admin = Admin(this, configuration, entityManagerFactory = entityManagerFactory)
     admin.addView(EntityView(User::class))
 }

@@ -51,6 +51,8 @@ package xyz.daimones.ktor.panel
  *
  * @property templateRenderer The template renderer/engine used to render templates.
  *
+ * @property listFields Optional list of fields to display in the list view. If null, all fields will be shown.
+ *
  * @see Admin
  * @see BaseView
  */
@@ -69,5 +71,6 @@ data class Configuration(
     val customDeleteTemplate: String? = null,
     val customLogoutTemplate: String? = null,
     val favicon: String = "/static/logo.ico",
-    val templateRenderer: TemplateRenderer = MustacheTemplateRenderer()
+    val templateRenderer: TemplateRenderer = MustacheTemplateRenderer(),
+    val listFields: List<String>? = null
 )

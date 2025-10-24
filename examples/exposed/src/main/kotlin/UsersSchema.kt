@@ -7,6 +7,7 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.javatime.datetime
 import xyz.daimones.ktor.panel.database.FileUpload
+import xyz.daimones.ktor.panel.database.PasswordField
 import java.time.LocalDateTime
 
 enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
@@ -15,6 +16,8 @@ object Users : IntIdTable() {
     val email: Column<String> = varchar("email", length = 50).uniqueIndex()
     val firstName: Column<String> = varchar("first_name", length = 255)
     val lastName: Column<String> = varchar("last_name", length = 255)
+
+    @PasswordField
     val password: Column<String> = varchar("password", length = 100)
     val role = enumerationByName("role", 15, Role::class).default(Role.SUPER_ADMIN)
 
