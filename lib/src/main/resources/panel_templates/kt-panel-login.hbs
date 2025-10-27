@@ -7,9 +7,9 @@
     <link rel="icon" type="image/x-icon" href={{configuration.favicon}}>
     <title>Login</title>
 </head>
-<body class="dark:bg-gray-900 dark:text-white">
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white">
 <div>
-    <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] dark:bg-[#1a1919] min-h-14">
+    <nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#1a1919] min-h-14">
         <a class="list-none font-bold text-white p-4 cursor-pointer active:bg-black"
            href="/{{configuration.url}}">
             {{configuration.adminName}}
@@ -17,7 +17,7 @@
     </nav>
     <div class="container mx-auto p-4 w-[70vw]">
         <form method="POST" action="/{{configuration.url}}/login"
-              class="bg-white dark:bg-gray-800 dark:text-white shadow-md dark:shadow-md rounded px-8 pt-6 pb-8 mb-4">
+              class="bg-white dark:bg-gray-800 shadow-md dark:shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <div class="mb-6">
                 <label for="username"
                        class="block text-gray-700 dark:text-white text-sm font-bold mb-2">Username:</label>

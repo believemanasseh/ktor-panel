@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="/static/css/tailwind.min.css">
     <title>Edit {{entity}} - {{idValue}}</title>
 </head>
-<body class="bg-gray-100">
-<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white">
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#1a1919] min-h-14">
     <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
        href="/{{configuration.url}}/{{entityPath}}/list">
         Back to {{entity}} List
@@ -20,10 +20,10 @@
 
     {{#fields}}
     <form method="POST" action="/{{configuration.url}}/{{entityPath}}/new"
-          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" enctype="multipart/form-data">
+          class="bg-white dark:bg-gray-800 shadow-md rounded px-8 pt-6 pb-8 mb-4" enctype="multipart/form-data">
         <div class="mb-6">
             {{^is_hidden}}
-                <label for="{{name}}" class="block text-gray-700 text-sm font-bold mb-2 capitalize">
+                <label for="{{name}}" class="block text-gray-700 dark:text-white text-sm font-bold mb-2 capitalize">
                     {{name}}:
                 </label>
 
@@ -34,32 +34,35 @@
 
                 {{#is_select}}
                     <select name="{{name}}" id="{{name}}"
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline">
                         {{#options}}
-                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                            <option class="bg-gray-800 dark:text-white" value="{{value}}"
+                                    {{#selected}}selected{{/selected}}>{{text}}</option>
                         {{/options}}
                         {{^options}}
                             {{#value}}
-                                <option value="{{value}}" selected>{{value}} (Current)</option>
+                                <option class="bg-gray-800 dark:text-white" value="{{value}}" selected>{{value}}
+                                    (Current)
+                                </option>
                             {{/value}}
-                            <option value="">-- Please select --</option>
+                            <option class="bg-gray-800 dark:text-white" value="">-- Please select --</option>
                         {{/options}}
                     </select>
                 {{/is_select}}
 
                 {{#is_file}}
                     <input type="file" name="{{name}}" id="{{name}}"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline">
                 {{/is_file}}
 
                 {{#is_textarea}}
                     <textarea name="{{name}}" id="{{name}}" rows="4"
-                              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline"></textarea>
                 {{/is_textarea}}
 
                 {{#is_general_input}}
                     <input type="{{html_input_type}}" name="{{name}}" id="{{name}}"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline"
                            {{#is_readonly}}readonly{{/is_readonly}}> {{! Make non-hidden ID fields readonly }}
                 {{/is_general_input}}
             {{/is_hidden}}
