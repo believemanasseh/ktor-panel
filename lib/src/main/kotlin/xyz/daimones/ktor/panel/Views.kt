@@ -1268,7 +1268,8 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
             configuration,
             mapOf(
                 "tables" to tableNames.map { it.lowercase() },
-                "configuration" to configuration
+                "configuration" to configuration,
+                "isAuthenticated" to configuration.setAuthentication
             )
         )
 
