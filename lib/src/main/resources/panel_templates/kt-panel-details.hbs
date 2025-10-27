@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,8 @@
     <link rel="icon" type="image/x-icon" href={{configuration.favicon}}>
     <title>Edit {{entity}} - {{idValue}}</title>
 </head>
-<body class="bg-gray-100">
-<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#35373b] min-h-14">
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white">
+<nav class="flex flex-row w-[70vw] text-center m-[5px_auto] bg-[#1a1919] min-h-14">
     <a class="no-underline font-bold text-base text-white p-4 cursor-pointer active:bg-black"
        href="/{{configuration.url}}/{{entityPath}}/list">
         Back to {{entity}} List
@@ -32,12 +32,13 @@
 
     {{#fields}} {{! Check if fields list is not empty before rendering form }}
     <form method="POST" action="/{{configuration.url}}/{{entityPath}}/edit/{{idValue}}"
-          class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" enctype="multipart/form-data">
+          class="bg-white dark:bg-gray-800 shadow-md rounded px-8 pt-6 pb-8 mb-4"
+          enctype="multipart/form-data">
     {{/fields}}
     {{#fields}}
         <div class="mb-6">
             {{^is_hidden}}
-                <label for="{{name}}" class="block text-gray-700 text-sm font-bold mb-2 capitalize">
+                <label for="{{name}}" class="block text-gray-700 dark:text-white text-sm font-bold mb-2 capitalize">
                     {{name}}:
                 </label>
             {{/is_hidden}}
@@ -55,36 +56,38 @@
 
             {{#is_select}}
                 <select name="{{name}}" id="{{name}}"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline">
                     {{#options}}
-                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{text}}</option>
+                        <option class="bg-gray-800 dark:text-white" value="{{value}}"
+                                {{#selected}}selected{{/selected}}>{{text}}</option>
                     {{/options}}
                     {{^options}}
                         {{#value}}
-                            <option value="{{value}}" selected>{{value}} (Current)</option>
+                            <option class="bg-gray-800 dark:text-white" value="{{value}}" selected>{{value}}(Current)
+                            </option>
                         {{/value}}
-                        <option value="">-- Please select --</option>
+                        <option class="bg-gray-800 dark:text-white" value="">-- Please select --</option>
                     {{/options}}
                 </select>
             {{/is_select}}
 
             {{#is_file}}
                 <input type="file" name="{{name}}" id="{{name}}"
-                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline">
                 {{^is_blob}}
-                    <p class="mt-1">Current file: <a class="text-indigo-600 hover:text-indigo-700"
+                    <p class="mt-1 dark:text-white">Current file: <a class="text-indigo-600 hover:text-indigo-700"
                                                      href="/uploads/{{value}}" target="_blank">{{value}}</a></p>
                 {{/is_blob}}
             {{/is_file}}
 
             {{#is_textarea}}
                 <textarea name="{{name}}" id="{{name}}" rows="4"
-                          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">{{value}}</textarea>
+                          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline">{{value}}</textarea>
             {{/is_textarea}}
 
             {{#is_general_input}}
                 <input type="{{html_input_type}}" name="{{name}}" id="{{name}}" value="{{value}}"
-                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline"
                        {{#is_readonly}}readonly{{/is_readonly}}> {{! Make non-hidden ID fields readonly }}
             {{/is_general_input}}
         </div>
@@ -97,5 +100,57 @@
     </div>
 </form>
 </div>
+<footer class="fixed right-5 bottom-5">
+    <div id="light-mode" onclick="setLightTheme()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+    </div>
+    <div id="dark-mode" onclick="setDarkTheme()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             class="feather feather-moon">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </div>
+</footer>
 </body>
+<script>
+    // Dark/Light mode toggle
+    const darkModeIcon = document.getElementById('dark-mode');
+    const lightModeIcon = document.getElementById('light-mode');
+
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        darkModeIcon.style.display = 'none'
+    } else {
+        document.documentElement.classList.remove('dark');
+        lightModeIcon.style.display = 'none';
+    }
+
+
+    function setDarkTheme() {
+        document.documentElement.classList.add('dark');
+        darkModeIcon.style.display = 'none';
+        lightModeIcon.style.display = 'block'
+        localStorage.theme = 'dark';
+    }
+
+    function setLightTheme() {
+        document.documentElement.classList.remove('dark')
+        darkModeIcon.style.display = 'block';
+        lightModeIcon.style.display = 'none'
+        localStorage.theme = 'light';
+    }
+</script>
 </html>

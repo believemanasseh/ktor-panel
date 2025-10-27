@@ -1,7 +1,7 @@
 package com.example
 
 import jakarta.persistence.*
-import xyz.daimones.ktor.panel.database.FileUpload
+import xyz.daimones.ktor.panel.database.FileUploadField
 import java.time.LocalDateTime
 
 enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
@@ -32,7 +32,7 @@ class User(
     @Column(name = "role", length = 15, nullable = false)
     var role: Role = Role.SUPER_ADMIN,
 
-    @FileUpload(storage = "local", path = "/uploads")
+    @FileUploadField(storage = "local", path = "/uploads")
     @Column(name = "image", nullable = true)
     var image: String? = null,
 

@@ -6,7 +6,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.javatime.datetime
-import xyz.daimones.ktor.panel.database.FileUpload
+import xyz.daimones.ktor.panel.database.FileUploadField
 import xyz.daimones.ktor.panel.database.PasswordField
 import java.time.LocalDateTime
 
@@ -21,7 +21,7 @@ object Users : IntIdTable() {
     val password: Column<String> = varchar("password", length = 100)
     val role = enumerationByName("role", 15, Role::class).default(Role.SUPER_ADMIN)
 
-    @FileUpload(storage = "local", path = "/uploads")
+    @FileUploadField(storage = "local", path = "/uploads")
     val image: Column<String> = varchar("image", length = 255)
     val thumbnail = binary("thumbnail")
     var blobing = blob("blobing")

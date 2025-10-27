@@ -48,7 +48,7 @@ import org.jetbrains.exposed.sql.Column as ExposedColumn
  * This class is responsible for setting up routes and rendering templates for the admin panel. It
  * provides functionality for index, list, create, details, and update views.
  *
- * @property entityKClass The KClass of the database entity class to generate admin views for
+ * @param entityKClass The KClass of the database entity class to generate admin views for
  */
 open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     /**
@@ -1220,6 +1220,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
  *
  * This class can be extended to customise admin behavior for specific entity classes, or used directly for
  * standard database administration needs.
+ *
+ * @param entityKClass The KClass of the database entity class to generate admin views for
  * @see BaseView
  */
 class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClass) {
@@ -1266,7 +1268,8 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
             configuration,
             mapOf(
                 "tables" to tableNames.map { it.lowercase() },
-                "configuration" to configuration
+                "configuration" to configuration,
+                "isAuthenticated" to configuration.setAuthentication
             )
         )
 
