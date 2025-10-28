@@ -1,7 +1,9 @@
 package com.example
 
 import jakarta.persistence.*
+import xyz.daimones.ktor.panel.database.DateField
 import xyz.daimones.ktor.panel.database.FileUploadField
+import xyz.daimones.ktor.panel.database.UpdateField
 import java.time.LocalDateTime
 
 enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
@@ -40,9 +42,11 @@ class User(
     @Column(name = "thumbnail", nullable = true)
     var thumbnail: ByteArray? = null,
 
+    @DateField
     @Column(name = "created", nullable = false, updatable = false)
     var created: LocalDateTime = LocalDateTime.now(),
 
+    @UpdateField
     @Column(name = "modified", nullable = false)
     var modified: LocalDateTime = LocalDateTime.now()
 )
