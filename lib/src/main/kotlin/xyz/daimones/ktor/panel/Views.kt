@@ -543,7 +543,11 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     readData = false
                 }
 
-                var pair = paramMap[column.name]
+                var pair = paramMap[column.name] ?: if (column.columnType is BooleanColumnType) {
+                    Pair("false", true)
+                } else {
+                    null
+                }
                 var value = pair!!.first
                 if (pair.second) {
                     value = getColumnValues(column, value.toString())
@@ -576,14 +580,22 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 if (readData) {
                     paramMap = readMultipartData(params, columns)
+                    println("$paramMap map")
                     readData = false
                 }
 
-                var pair = paramMap[property.name]
+                println("${property.name} prop")
+                var pair = paramMap[property.name] ?: if (property.returnType.classifier == Boolean::class) {
+                    Pair("false", true)
+                } else {
+                    null
+                }
                 var value = pair!!.first
                 if (pair.second) {
                     value = getColumnValues(property, value.toString())
                 }
+
+
 
                 if (value != null) {
                     val property = entityKClass.declaredMemberProperties.find { it.name == property.name }
@@ -619,6 +631,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
         while (partData != null) {
             if (partData is PartData.FormItem) {
+                println("Form item: ${partData.name} = ${partData.value}")
                 var paramValue = partData.value
 
                 // Handle checkbox values
@@ -1206,7 +1219,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                         val args =
                             getConstructorArgs(view = "details", constructor = constructor, dataToSave = dataToSave)
-                        
+
                         val entityInstance = constructor.callBy(args)
                         dao!!.update(entityInstance)
                     }
