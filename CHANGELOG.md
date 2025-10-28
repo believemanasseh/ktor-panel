@@ -7,6 +7,7 @@
 - Support for file upload fields, including disk storage and byte array handling, with annotation-based configuration.
 - Support for property filtering for list views, supporting custom field selection via configuration.
 - Support for annotation-based configuration for file upload, primary key and password fields.
+- Support for dark mode in the admin interface, with a toggle switch.
 
 ### Changed
 
