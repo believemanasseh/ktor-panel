@@ -32,9 +32,7 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.KType
+import kotlin.reflect.*
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
@@ -390,6 +388,60 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
     }
 
     /**
+     * Validates user credentials and manages session creation.
+     *
+     * This method checks the provided username and password against stored credentials.
+     * If valid, it creates a new session and sets a session cookie. If invalid, it
+     * responds with an error message.
+     *
+     * @param call The routing call to respond to
+     * @param username The username provided by the user
+     * @param data The mutable map to populate with response data
+     * @param user The user object retrieved from the database
+     * @param password The password provided by the user
+     * @param hashedPassword The hashed password stored in the database
+     */
+    suspend fun validateUser(
+        call: RoutingCall,
+        username: String,
+        data: MutableMap<String, Any>,
+        user: Any?,
+        password: String?,
+        hashedPassword: String?
+    ) {
+        if (user != null && BCrypt.checkpw(password.toString(), hashedPassword)) {
+            val sessionId = UUID.randomUUID().toString()
+            val maxAge = 60 * 60 * 24 * 30
+
+            InMemorySessionManager.set(sessionId, username.toString(), maxAge.toLong())
+
+            call.response.cookies.append(
+                Cookie(
+                    name = "session_id",
+                    value = sessionId,
+                    httpOnly = true,
+                    path = "/",
+                    maxAge = maxAge, // 30 days
+                    secure = false
+                )
+            )
+
+            val endpoint =
+                if (configuration?.endpoint === "/") ""
+                else "/${configuration?.endpoint}"
+            call.respondRedirect("/${configuration?.url}${endpoint}")
+        } else {
+            data["errorMessage"] = "Invalid username or password"
+            call.respond(
+                MustacheContent(
+                    configuration?.customLoginTemplate ?: defaultLoginTemplate,
+                    data
+                )
+            )
+        }
+    }
+
+    /**
      * Retrieves enum values for a column if it is an enumeration type.
      *
      * This method checks if the column is an ExposedColumn or KType and returns the enum constants
@@ -434,6 +486,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 is DecimalColumnType -> paramValue?.toBigDecimalOrNull()
                 is JavaLocalDateTimeColumnType -> paramValue?.let { LocalDateTime.parse(it) }
                 else -> paramValue
+
             }
         } else {
             @Suppress("UNCHECKED_CAST")
@@ -463,45 +516,84 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
         dataToSave: MutableMap<String, Any>,
         view: String = "details"
     ) {
+        val columns: MutableMap<String, Map<String, Pair<Boolean, String?>>> = mutableMapOf()
+        entityKClass.declaredMemberProperties.forEach { property ->
+            columns[property.name] = mapOf(
+                "saveToDisk" to Pair(
+                    property.annotations.any { it is FileUploadField },
+                    ""
+                ),
+                "path" to Pair(
+                    false,
+                    property.findAnnotation<FileUploadField>()?.path
+                )
+            )
+        }
+
         if (driverType == DriverType.EXPOSED) {
+            var paramMap: Map<String, Pair<Any?, Boolean>> = mapOf()
+            var readData = true
             (entityKClass.objectInstance as Table).columns.forEach { column ->
-                val columnName = column.name
-                if (view == "create" && columnName.equals("id", ignoreCase = true)) {
+                if (view == "create" && column.name.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
-                val value = readMultipartData(params, column)
+                if (readData) {
+                    paramMap = readMultipartData(params, columns)
+                    readData = false
+                }
+
+                var pair = paramMap[column.name]
+                var value = pair!!.first
+                if (pair.second) {
+                    value = getColumnValues(column, value.toString())
+                }
 
                 transaction(this.database as Database) {
                     if (value != null) {
                         val property =
-                            entityKClass.declaredMemberProperties.find { it.name == snakeToCamel(columnName) }
-                        if (property?.findAnnotation<PasswordField>() != null || columnName == "password") {
-                            dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                            entityKClass.declaredMemberProperties.find { it.name == snakeToCamel(column.name) }
+                        if (property?.findAnnotation<PasswordField>() != null || column.name == "password") {
+                            dataToSave[column.name] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                        } else if (property?.findAnnotation<UpdateField>() != null && view == "details") {
+                            dataToSave[column.name] =
+                                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                         } else if (column.columnType is BlobColumnType) {
-                            dataToSave[columnName] = ExposedBlob(value as ByteArray)
+                            dataToSave[column.name] = ExposedBlob(value as ByteArray)
                         } else {
-                            dataToSave[columnName] = value
+                            dataToSave[column.name] = value
                         }
                     }
                 }
             }
         } else {
+            var paramMap: Map<String, Pair<Any?, Boolean>> = mapOf()
+            var readData = true
             entityKClass.declaredMemberProperties.forEach { property ->
-                val columnName = property.name
-                if (view == "create" && columnName.equals("id", ignoreCase = true)) {
+                if (view == "create" && property.name.equals("id", ignoreCase = true)) {
                     return@forEach
                 }
 
+                if (readData) {
+                    paramMap = readMultipartData(params, columns)
+                    readData = false
+                }
 
-                val value = readMultipartData(params, property)
+                var pair = paramMap[property.name]
+                var value = pair!!.first
+                if (pair.second) {
+                    value = getColumnValues(property, value.toString())
+                }
 
                 if (value != null) {
-                    val property = entityKClass.declaredMemberProperties.find { it.name == columnName }
-                    if (property?.findAnnotation<PasswordField>() != null || columnName == "password") {
-                        dataToSave[columnName] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                    val property = entityKClass.declaredMemberProperties.find { it.name == property.name }
+                    if (property?.findAnnotation<PasswordField>() != null || property!!.name == "password") {
+                        dataToSave[property.name] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
+                    } else if (property.findAnnotation<UpdateField>() != null && view == "details") {
+                        dataToSave[property.name] =
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
                     } else {
-                        dataToSave[columnName] = value
+                        dataToSave[property.name] = value
                     }
                 }
             }
@@ -515,80 +607,309 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      * specified column. It handles both form items and file items, returning the appropriate value.
      *
      * @param params The multipart data received from the request
-     * @param column The column to read the value for
+     * @param columns The map of column configurations
      * @return The value for the column, or null if not found
      */
-    private suspend fun readMultipartData(params: MultiPartData, column: Any): Any? {
-        var saveToDisk = false
-        var path: String? = null
-        val column =
-            if (driverType == DriverType.EXPOSED) {
-                transaction(this.database as Database) {
-                    val idProp =
-                        entityKClass.memberProperties.firstOrNull { it.name == "id" } ?: throw IllegalArgumentException(
-                            "Exposed Entity must have an 'id' property"
-                        )
-                    val property =
-                        entityKClass.declaredMemberProperties.plus(idProp)
-                            .find { it.name == snakeToCamel((column as ExposedColumn<*>).name) } as KProperty1<T, *>
-                    val annotation = property.findAnnotation<FileUploadField>()
-                    if (annotation != null) {
-                        saveToDisk = true
-                        path = annotation.path
+    private suspend fun readMultipartData(
+        params: MultiPartData,
+        columns: Map<String, Map<String, Pair<Boolean, String?>>>
+    ): Map<String, Pair<Any?, Boolean>> {
+        val result = mutableMapOf<String, Pair<Any?, Boolean>>()
+        var partData: PartData? = params.readPart()
+
+        while (partData != null) {
+            if (partData is PartData.FormItem) {
+                var paramValue = partData.value
+
+                // Handle checkbox values
+                if (paramValue == "on") {
+                    paramValue = "true"
+                } else if (paramValue == "off") {
+                    paramValue = "false"
+                }
+
+                result[partData.name ?: ""] = Pair(paramValue, true)
+            } else if (partData is PartData.FileItem) {
+                val column = columns[partData.name]
+                    ?: throw IllegalArgumentException("No column configuration found for ${partData.name}")
+                val channel = partData.provider()
+                val saveToDisk = column["saveToDisk"]!!.first
+                if (saveToDisk) {
+                    // Save file to disk
+                    val fileName = partData.originalFileName as String
+                    val path = column["path"]!!.second
+                    val file = File("${path?.slice(1..path.length - 1)}/$fileName")
+                    channel.copyAndClose(file.writeChannel())
+                    result[partData.name ?: ""] = Pair(file.path, false)
+                } else {
+                    // Read file content into a ByteArray
+                    val buffer = ByteArray(4096)
+                    val value = mutableListOf<Byte>()
+                    while (!channel.isClosedForRead) {
+                        val bytesRead = channel.readAvailable(buffer)
+                        if (bytesRead > 0) {
+                            value.addAll(buffer.take(bytesRead))
+                        }
                     }
-                    property.getter.call(entityKClass.objectInstance as Table)
+                    result[partData.name ?: ""] = Pair(value.toByteArray(), false)
                 }
-            } else {
-                @Suppress("UNCHECKED_CAST")
-                val property =
-                    entityKClass.declaredMemberProperties.find { it.name == (column as KProperty1<T, *>).name } as KProperty1<T, *>
-                val annotation = property.findAnnotation<FileUploadField>()
-                if (annotation != null) {
-                    saveToDisk = true
-                    path = annotation.path
-                }
-                column
+
             }
 
-        val partData: PartData? = params.readPart()
-        var value: Any? = null
-        if (partData is PartData.FormItem) {
-            var paramValue = partData.value
-
-            // Handle checkbox values
-            if (paramValue == "on") {
-                paramValue = "true"
-            } else if (paramValue == "off") {
-                paramValue = "false"
-            }
-
-            value = getColumnValues(column!!, paramValue)
-        } else if (partData is PartData.FileItem) {
-            val channel = partData.provider()
-            if (saveToDisk) {
-                // Save file to disk
-                val fileName = partData.originalFileName as String
-                val file = File("${path?.slice(1..path.length - 1)}/$fileName")
-                channel.copyAndClose(file.writeChannel())
-                value = file.path
-            } else {
-                // Read file content into a ByteArray
-                val buffer = ByteArray(4096)
-                value = mutableListOf<Byte>()
-                while (!channel.isClosedForRead) {
-                    val bytesRead = channel.readAvailable(buffer)
-                    if (bytesRead > 0) {
-                        value.addAll(buffer.take(bytesRead))
-                    }
-                }
-                value = value.toByteArray()
-            }
-
+            partData.dispose()
+            partData = params.readPart()
         }
 
-        partData?.dispose()
+        return result
+    }
 
-        return value
+    /**
+     * Retrieves constructor arguments for creating a new instance of the entity.
+     *
+     * This method maps the parameters of the entity's primary constructor to the corresponding
+     * values from the data to save, handling special cases like MongoDB ObjectId and enum types.
+     *
+     * @param constructor The primary constructor of the entity
+     * @param dataToSave The map of data to be saved
+     * @return A map of KParameter to their corresponding values for constructor invocation
+     */
+    private fun getConstructorArgs(
+        view: String,
+        constructor: KFunction<T>,
+        dataToSave: MutableMap<String, Any>
+    ): Map<KParameter, Any?> {
+        return if (view == "create") {
+            constructor.parameters.associateWith { param ->
+                when {
+                    param.name == "id" && driverType == DriverType.MONGO -> ObjectId()
+
+                    (param.type.classifier as? KClass<*>)?.java?.isEnum == true -> {
+                        val value = dataToSave[param.name]
+                        if (value is String) {
+                            val enumClass = param.type.classifier as KClass<*>
+                            try {
+                                @Suppress("UNCHECKED_CAST")
+                                java.lang.Enum.valueOf(
+                                    enumClass.java as Class<out Enum<*>>,
+                                    value
+                                )
+                            } catch (e: Exception) {
+                                throw IllegalArgumentException("Invalid enum value '$value' for ${param.name}: ${e.message}")
+                            }
+                        } else {
+                            dataToSave[param.name]
+                        }
+                    }
+
+                    else -> dataToSave[param.name]
+                }
+            }.toMap()
+        } else {
+            constructor.parameters.associateWith { param ->
+                val value = dataToSave[param.name]
+                when (param.type.classifier) {
+                    ObjectId::class -> (value as? String)?.let { ObjectId(it) }
+                    LocalDateTime::class -> {
+                        value as? LocalDateTime
+                            ?: if (value is String) {
+                                LocalDateTime.parse(value)
+                            } else {
+                                null
+                            }
+                    }
+
+                    is KClass<*> -> if ((param.type.classifier as KClass<*>).java.isEnum) {
+                        value.let { enumValue ->
+                            @Suppress("UNCHECKED_CAST")
+                            java.lang.Enum.valueOf(
+                                (param.type.classifier as KClass<*>).java as Class<out Enum<*>>,
+                                enumValue as String
+                            )
+                        }
+                    } else value
+
+                    else -> value
+                }
+            }
+        }
+    }
+
+    /**
+     * Prepares the fields for rendering in templates.
+     *
+     * This method processes the column types and constructs a list of maps containing field
+     * properties such as name, HTML input type, original type, and flags for different input types.
+     *
+     * @param view The view type ("create" or "details") to determine processing logic
+     * @param columnTypes The list of column types to process
+     * @param propertyObject The object map containing field values for the "details" view
+     * @return A list of maps representing the fields for template rendering
+     */
+    private fun getFieldsForTemplate(
+        view: String,
+        columnTypes: List<Map<String, Any?>>? = null,
+        propertyObject: Map<String, Map<String, Any?>>? = null,
+    ): Any {
+        return if (view == "create") {
+            columnTypes!!.map { props ->
+                val inputType = props["html_input_type"] as String
+                val originalType = props["original_type"] ?: ""
+                val isReadOnly = (props["name"] as String).equals("id", ignoreCase = true)
+
+                val map = mutableMapOf(
+                    "name" to props["name"],
+                    "html_input_type" to inputType,
+                    "original_type" to originalType,
+                    "is_checkbox" to (inputType == "checkbox"),
+                    "is_select" to (inputType == "select"),
+                    "is_textarea" to (inputType == "textarea"),
+                    "is_hidden" to (props["name"] == "id"),
+                    "is_readonly" to isReadOnly,
+                    "is_file" to (inputType == "file"),
+                    "is_general_input" to
+                            !listOf("checkbox", "select", "textarea", "hidden", "file")
+                                .contains(inputType)
+                )
+
+                if (props["enum_values"] != null && inputType == "select") {
+                    @Suppress("UNCHECKED_CAST")
+                    map["options"] = (props["enum_values"] as? List<String>)?.map { value ->
+                        mapOf("value" to value, "text" to value, "selected" to false)
+                    }
+                }
+
+                map
+            }
+        } else {
+            propertyObject!!.entries.map { (name, props) ->
+                val inputType = props["html_input_type"] as String
+                val originalType = props["original_type"] as? String ?: ""
+                val isReadOnly =
+                    name.equals("id", ignoreCase = true) ||
+                            name.equals("created", ignoreCase = true) ||
+                            name.equals("modified", ignoreCase = true) ||
+                            name.equals("password", ignoreCase = true)
+
+                val map = mutableMapOf(
+                    "name" to name,
+                    "value" to props["value"],
+                    "html_input_type" to inputType,
+                    "original_type" to originalType,
+                    "is_checkbox" to (inputType == "checkbox"),
+                    "is_select" to (inputType == "select"),
+                    "is_textarea" to (inputType == "textarea"),
+                    "is_readonly" to isReadOnly,
+                    "is_file" to (inputType == "file"),
+                    "is_blob" to (
+                            originalType == "BasicBinaryColumnType"
+                                    || originalType == "BlobColumnType"
+                                    || originalType == "kotlin.ByteArray?"
+                                    || originalType == "kotlin.ByteArray"
+                            ),
+                    "is_general_input" to
+                            !listOf("checkbox", "select", "textarea", "hidden", "file")
+                                .contains(inputType)
+                )
+
+                if (inputType == "select") {
+                    @Suppress("UNCHECKED_CAST")
+                    val enumValues = if (driverType == DriverType.EXPOSED) {
+                        ((props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first as? Array<out Enum<*>>)?.map { it.name }
+                    } else {
+                        (props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first?.map { enumValue ->
+                            when (enumValue) {
+                                is Enum<*> -> enumValue.name
+                                is ObjectId -> enumValue.toHexString()
+                                else -> enumValue.toString()
+                            }
+                        }
+                    }
+                    if (enumValues != null) {
+                        map["options"] = enumValues.map { value ->
+                            val originalEnumValue = (props["value"] as? Enum<*>)?.name
+                                ?: props["value"]?.toString()
+
+                            mapOf(
+                                "value" to value,
+                                "text" to value,
+                                "selected" to (originalEnumValue == value)
+                            )
+                        }
+                    }
+                }
+
+                map
+            }
+        }
+    }
+
+    /**
+     * Constructs a property object for the entity instance with the given ID.
+     *
+     * This method retrieves the entity instance by its ID and constructs a map of property names
+     * to their values, HTML input types, original types, and enum values if applicable.
+     *
+     * @param idValue The ID value of the entity instance to retrieve
+     * @return A map where each key is a property name and the value is another map containing
+     *         the property's value, HTML input type, original type, and enum values
+     * @throws IllegalArgumentException if the entity is not found or does not have an 'id' property
+     */
+    private suspend fun constructPropertyObject(idValue: Any): Map<String, Map<String, Any?>> {
+        return if (driverType == DriverType.EXPOSED) {
+            val entity = dao!!.findById(idValue, true)
+            (entityKClass.objectInstance as Table).columns.associate { column ->
+                val camelCaseName = snakeToCamel(column.name)
+                val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
+                    ?: throw IllegalArgumentException("Exposed Entity must have an 'id' property")
+                val properties =
+                    entityKClass.declaredMemberProperties.plus(idProp)
+                val property = properties.find { it.name == camelCaseName }
+
+                @Suppress("UNCHECKED_CAST")
+                var actualValue = (entity as Map<String, Any?>)[column.name]
+                if (actualValue is LocalDateTime) {
+                    actualValue = actualValue.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                }
+                val isFileUploadField = property!!.annotations.any { it is FileUploadField }
+                if (isFileUploadField) {
+                    actualValue = (actualValue as String).split("/").last()
+                }
+                val htmlInputType = getHtmlInputType(column.columnType, isFileUploadField)
+                val enumValues: Pair<Array<out Any>?, String>? = getEnumValues(htmlInputType, column)
+                column.name to
+                        mapOf(
+                            "value" to actualValue,
+                            "html_input_type" to htmlInputType,
+                            "original_type" to
+                                    column.columnType::class.simpleName,
+                            "enum_values" to enumValues
+                        )
+            }
+        } else {
+            val entity = dao!!.findById(idValue)
+            entityKClass.memberProperties.associate { property ->
+                val value = property.call(entity)
+                var actualValue = if (value is LocalDateTime) {
+                    value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                } else {
+                    value
+                }
+                val isFileUploadField = property.annotations.any { it is FileUploadField }
+                if (isFileUploadField) {
+                    actualValue = (actualValue as String).split("/").last()
+                }
+                val htmlInputType = getHtmlInputType(property.returnType, isFileUploadField)
+                val enumValues: Pair<Array<out Any>?, String>? =
+                    getEnumValues(htmlInputType, property.returnType)
+                property.name to
+                        mapOf(
+                            "value" to actualValue,
+                            "html_input_type" to htmlInputType,
+                            "original_type" to property.returnType.toString(),
+                            "enum_values" to enumValues
+                        )
+            }
+        }
     }
 
     /**
@@ -621,60 +942,28 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 post {
                     val params = call.receiveParameters()
-                    val username = params["username"]
+                    val username = params["username"].toString()
                     val password = params["password"]
-
-
-                    // Check if username and password are provided
-                    suspend fun validateUser(user: Any?, password: String?, hashedPassword: String?) {
-                        if (user != null && BCrypt.checkpw(password.toString(), hashedPassword)) {
-                            val sessionId = UUID.randomUUID().toString()
-                            val maxAge = 60 * 60 * 24 * 30
-
-                            InMemorySessionManager.set(sessionId, username.toString(), maxAge.toLong())
-
-                            call.response.cookies.append(
-                                Cookie(
-                                    name = "session_id",
-                                    value = sessionId,
-                                    httpOnly = true,
-                                    path = "/",
-                                    maxAge = maxAge, // 30 days
-                                    secure = false
-                                )
-                            )
-
-                            val endpoint =
-                                if (configuration.endpoint === "/") ""
-                                else "/${configuration.endpoint}"
-                            call.respondRedirect("/${configuration.url}${endpoint}")
-                        } else {
-                            data["errorMessage"] = "Invalid username or password"
-                            call.respond(
-                                MustacheContent(
-                                    configuration.customLoginTemplate ?: defaultLoginTemplate,
-                                    data
-                                )
-                            )
-                        }
-                    }
 
                     val user: Any?
                     when (driverType) {
                         DriverType.EXPOSED -> {
                             user = dao!!.find(username.toString())
                             @Suppress("UNCHECKED_CAST")
-                            validateUser(user, password, (user as Pair<String, String>).second)
+                            val hashedPassword = (user as Pair<String, String>).second
+                            validateUser(call, username, data, user, password, hashedPassword)
                         }
 
                         DriverType.JPA -> {
-                            user = dao!!.find(username.toString())
-                            validateUser(user, password, (user as? JpaAdminUser)?.password)
+                            user = dao!!.find(username)
+                            val hashedPassword = (user as? JpaAdminUser)?.password
+                            validateUser(call, username, data, user, password, hashedPassword)
                         }
 
                         DriverType.MONGO -> {
                             user = dao!!.find(username.toString())
-                            validateUser(user, password, (user as? MongoAdminUser)?.password)
+                            val hashedPassword = (user as? MongoAdminUser)?.password
+                            validateUser(call, username, data, user, password, hashedPassword)
                         }
                     }
                 }
@@ -777,37 +1066,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     val isValid = validateSession(call)
                     if (isValid) {
                         val columnTypes = getColumnTypes()
-                        val fieldsForTemplate =
-                            columnTypes.map { props ->
-                                val inputType = props["html_input_type"] as String
-                                val originalType = props["original_type"] ?: ""
-                                val isReadOnly = (props["name"] as String).equals("id", ignoreCase = true)
-
-                                val map = mutableMapOf(
-                                    "name" to props["name"],
-                                    "html_input_type" to inputType,
-                                    "original_type" to originalType,
-                                    "is_checkbox" to (inputType == "checkbox"),
-                                    "is_select" to (inputType == "select"),
-                                    "is_textarea" to (inputType == "textarea"),
-                                    "is_hidden" to (props["name"] == "id"),
-                                    "is_readonly" to isReadOnly,
-                                    "is_file" to (inputType == "file"),
-                                    "is_general_input" to
-                                            !listOf("checkbox", "select", "textarea", "hidden", "file")
-                                                .contains(inputType)
-                                )
-
-                                if (props["enum_values"] != null && inputType == "select") {
-                                    @Suppress("UNCHECKED_CAST")
-                                    map["options"] = (props["enum_values"] as? List<String>)?.map { value ->
-                                        mapOf("value" to value, "text" to value, "selected" to false)
-                                    }
-                                }
-
-                                map
-                            }
-
+                        val fieldsForTemplate = getFieldsForTemplate(view = "create", columnTypes = columnTypes)
                         data["fields"] = fieldsForTemplate
                         data["tablesData"] =
                             mapOf("headers" to headers, "data" to mapOf("values" to getTableDataValues(configuration)))
@@ -843,32 +1102,8 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         constructDataToSave(params, dataToSave, "create")
                         val constructor = entityKClass.primaryConstructor
                             ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
-
-                        val args = constructor.parameters.associateWith { param ->
-                            when {
-                                param.name == "id" && driverType == DriverType.MONGO -> ObjectId()
-
-                                (param.type.classifier as? KClass<*>)?.java?.isEnum == true -> {
-                                    val value = dataToSave[param.name]
-                                    if (value is String) {
-                                        val enumClass = param.type.classifier as KClass<*>
-                                        try {
-                                            @Suppress("UNCHECKED_CAST")
-                                            java.lang.Enum.valueOf(
-                                                enumClass.java as Class<out Enum<*>>,
-                                                value
-                                            )
-                                        } catch (e: Exception) {
-                                            throw IllegalArgumentException("Invalid enum value '$value' for ${param.name}: ${e.message}")
-                                        }
-                                    } else {
-                                        dataToSave[param.name]
-                                    }
-                                }
-
-                                else -> dataToSave[param.name]
-                            }
-                        }.toMap()
+                        val args =
+                            getConstructorArgs(view = "create", constructor = constructor, dataToSave = dataToSave)
 
                         val entityInstance = constructor.callBy(args)
                         val savedInstance = dao!!.save(entityInstance)
@@ -918,126 +1153,12 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                             call.parameters["id"] ?: throw IllegalArgumentException("ObjectID parameter is required")
                         }
 
-                        val obj = if (driverType == DriverType.EXPOSED) {
-                            val entity = dao!!.findById(idValue, true)
-                            (entityKClass.objectInstance as Table).columns.associate { column ->
-                                val camelCaseName = snakeToCamel(column.name)
-                                val idProp = entityKClass.memberProperties.firstOrNull { it.name == "id" }
-                                    ?: throw IllegalArgumentException("Exposed Entity must have an 'id' property")
-                                val properties =
-                                    entityKClass.declaredMemberProperties.plus(idProp)
-                                val property = properties.find { it.name == camelCaseName }
-
-                                @Suppress("UNCHECKED_CAST")
-                                var actualValue = (entity as Map<String, Any?>)[column.name]
-                                if (actualValue is LocalDateTime) {
-                                    actualValue = actualValue.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                                }
-                                val isFileUploadField = property!!.annotations.any { it is FileUploadField }
-                                if (isFileUploadField) {
-                                    actualValue = (actualValue as String).split("/").last()
-                                }
-                                val htmlInputType = getHtmlInputType(column.columnType, isFileUploadField)
-                                val enumValues: Pair<Array<out Any>?, String>? = getEnumValues(htmlInputType, column)
-                                column.name to
-                                        mapOf(
-                                            "value" to actualValue,
-                                            "html_input_type" to htmlInputType,
-                                            "original_type" to
-                                                    column.columnType::class.simpleName,
-                                            "enum_values" to enumValues
-                                        )
-                            }
-                        } else {
-                            val entity = dao!!.findById(idValue)
-                            entityKClass.memberProperties.associate { property ->
-                                val value = property.call(entity)
-                                var actualValue = if (value is LocalDateTime) {
-                                    value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                                } else {
-                                    value
-                                }
-                                val isFileUploadField = property.annotations.any { it is FileUploadField }
-                                if (isFileUploadField) {
-                                    actualValue = (actualValue as String).split("/").last()
-                                }
-                                val htmlInputType = getHtmlInputType(property.returnType, isFileUploadField)
-                                val enumValues: Pair<Array<out Any>?, String>? =
-                                    getEnumValues(htmlInputType, property.returnType)
-                                property.name to
-                                        mapOf(
-                                            "value" to actualValue,
-                                            "html_input_type" to htmlInputType,
-                                            "original_type" to property.returnType.toString(),
-                                            "enum_values" to enumValues
-                                        )
-                            }
-                        }
-
-                        val fieldsForTemplate =
-                            obj.entries.map { (name, props) ->
-                                val inputType = props["html_input_type"] as String
-                                val originalType = props["original_type"] as? String ?: ""
-                                val isReadOnly =
-                                    name.equals("id", ignoreCase = true) ||
-                                            name.equals("created", ignoreCase = true) ||
-                                            name.equals("modified", ignoreCase = true) ||
-                                            name.equals("password", ignoreCase = true)
-
-                                val map = mutableMapOf(
-                                    "name" to name,
-                                    "value" to props["value"],
-                                    "html_input_type" to inputType,
-                                    "original_type" to originalType,
-                                    "is_checkbox" to (inputType == "checkbox"),
-                                    "is_select" to (inputType == "select"),
-                                    "is_textarea" to (inputType == "textarea"),
-                                    "is_readonly" to isReadOnly,
-                                    "is_file" to (inputType == "file"),
-                                    "is_blob" to (
-                                            originalType == "BasicBinaryColumnType"
-                                                    || originalType == "BlobColumnType"
-                                                    || originalType == "kotlin.ByteArray?"
-                                                    || originalType == "kotlin.ByteArray"
-                                            ),
-                                    "is_general_input" to
-                                            !listOf("checkbox", "select", "textarea", "hidden", "file")
-                                                .contains(inputType)
-                                )
-
-                                if (inputType == "select") {
-                                    @Suppress("UNCHECKED_CAST")
-                                    val enumValues = if (driverType == DriverType.EXPOSED) {
-                                        ((props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first as? Array<out Enum<*>>)?.map { it.name }
-                                    } else {
-                                        (props["enum_values"] as? Pair<Array<out Any>?, String>?)?.first?.map { enumValue ->
-                                            when (enumValue) {
-                                                is Enum<*> -> enumValue.name
-                                                is ObjectId -> enumValue.toHexString()
-                                                else -> enumValue.toString()
-                                            }
-                                        }
-                                    }
-                                    if (enumValues != null) {
-                                        map["options"] = enumValues.map { value ->
-                                            val originalEnumValue = (props["value"] as? Enum<*>)?.name
-                                                ?: props["value"]?.toString()
-
-                                            mapOf(
-                                                "value" to value,
-                                                "text" to value,
-                                                "selected" to (originalEnumValue == value)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                map
-                            }
+                        val propertyObject = constructPropertyObject(idValue)
+                        val fieldsForTemplate = getFieldsForTemplate(view = "details", propertyObject = propertyObject)
 
                         data["fields"] = fieldsForTemplate
                         data["idValue"] = idValue.toString()
-                        data["object"] = obj
+                        data["object"] = propertyObject
 
                         if (successMessage != null) {
                             data["successMessage"] = successMessage.toString()
@@ -1083,35 +1204,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         val constructor = entityKClass.primaryConstructor
                             ?: throw IllegalArgumentException("Entity class must have a primary constructor.")
 
-                        val args = constructor.parameters.associateWith { param ->
-                            val value = dataToSave[param.name]
-
-                            when (param.type.classifier) {
-                                ObjectId::class -> (value as? String)?.let { ObjectId(it) }
-                                LocalDateTime::class -> {
-                                    if (value!!::class == LocalDateTime::class) {
-                                        value
-                                    } else if (value is String) {
-                                        LocalDateTime.parse(value)
-                                    } else {
-                                        null
-                                    }
-
-                                }
-                                is KClass<*> -> if ((param.type.classifier as KClass<*>).java.isEnum) {
-                                    value.let { enumValue ->
-                                        @Suppress("UNCHECKED_CAST")
-                                        java.lang.Enum.valueOf(
-                                            (param.type.classifier as KClass<*>).java as Class<out Enum<*>>,
-                                            enumValue as String
-                                        )
-                                    }
-                                } else value
-
-                                else -> value
-                            }
-                        }
-
+                        val args =
+                            getConstructorArgs(view = "details", constructor = constructor, dataToSave = dataToSave)
+                        
                         val entityInstance = constructor.callBy(args)
                         dao!!.update(entityInstance)
                     }

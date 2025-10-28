@@ -18,4 +18,4 @@ annotation class DateField
 
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class ModifiedField
+annotation class UpdateField
