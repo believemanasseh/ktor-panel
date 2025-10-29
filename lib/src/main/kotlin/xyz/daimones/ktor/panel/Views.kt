@@ -487,6 +487,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                 is JavaLocalDateTimeColumnType -> paramValue?.let { LocalDateTime.parse(it) }
                 else -> paramValue
 
+
             }
         } else {
             @Suppress("UNCHECKED_CAST")
@@ -560,8 +561,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                         if (property?.findAnnotation<PasswordField>() != null || column.name == "password") {
                             dataToSave[column.name] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
                         } else if (property?.findAnnotation<UpdateField>() != null && view == "details") {
-                            dataToSave[column.name] =
-                                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+                            val dateTimeString = LocalDateTime.now().format(formatter)
+                            dataToSave[column.name] = LocalDateTime.parse(dateTimeString, formatter)
                         } else if (column.columnType is BlobColumnType) {
                             dataToSave[column.name] = ExposedBlob(value as ByteArray)
                         } else {
@@ -580,11 +582,9 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
                 if (readData) {
                     paramMap = readMultipartData(params, columns)
-                    println("$paramMap map")
                     readData = false
                 }
 
-                println("${property.name} prop")
                 var pair = paramMap[property.name] ?: if (property.returnType.classifier == Boolean::class) {
                     Pair("false", true)
                 } else {
@@ -595,15 +595,14 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     value = getColumnValues(property, value.toString())
                 }
 
-
-
                 if (value != null) {
                     val property = entityKClass.declaredMemberProperties.find { it.name == property.name }
                     if (property?.findAnnotation<PasswordField>() != null || property!!.name == "password") {
                         dataToSave[property.name] = BCrypt.hashpw(value.toString(), BCrypt.gensalt())
                     } else if (property.findAnnotation<UpdateField>() != null && view == "details") {
-                        dataToSave[property.name] =
-                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+                        val dateTimeString = LocalDateTime.now().format(formatter)
+                        dataToSave[property.name] = LocalDateTime.parse(dateTimeString, formatter)
                     } else {
                         dataToSave[property.name] = value
                     }
@@ -631,7 +630,6 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
 
         while (partData != null) {
             if (partData is PartData.FormItem) {
-                println("Form item: ${partData.name} = ${partData.value}")
                 var paramValue = partData.value
 
                 // Handle checkbox values
