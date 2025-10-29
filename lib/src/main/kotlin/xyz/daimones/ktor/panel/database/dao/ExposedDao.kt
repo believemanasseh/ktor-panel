@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.statements.UpdateStatement
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -209,10 +210,15 @@ internal class ExposedDao<T : Any>(
      * @return The deleted entity, or null if no entity was found with the given ID.
      */
     override suspend fun delete(id: Any): T {
+        @Suppress("UNCHECKED_CAST")
+        val idColumn = companion.primaryKey?.columns?.firstOrNull() as? Column<Any>
+            ?: throw IllegalStateException("No primary key defined for table.")
         val obj = withContext(Dispatchers.IO) {
-//            transaction(this@ExposedDao.database) { companion.findById(id.toString().toInt()) }
+            @Suppress("UNCHECKED_CAST")
+            val entityId = EntityID(id as Int, idColumn.table as IdTable<Int>)
+            transaction(this@ExposedDao.database) { companion.deleteWhere { idColumn eq entityId } }
         }
-//        transaction(database) { obj?.delete() } ?: throw IllegalArgumentException("Entity with id $id not found.")
+
         @Suppress("UNCHECKED_CAST")
         return obj as T
     }
