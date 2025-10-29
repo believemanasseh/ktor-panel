@@ -28,7 +28,7 @@ Gradle (Kotlin DSL)
 .. code:: kotlin
 
    dependencies {
-       implementation("xyz.daimones:ktor-panel:0.3.2")
+       implementation("xyz.daimones:ktor-panel:0.4.0")
    }
 
 Gradle (Groovy)
@@ -37,7 +37,7 @@ Gradle (Groovy)
 .. code:: groovy
 
    dependencies {
-       implementation 'xyz.daimones:ktor-panel:0.3.2'
+       implementation 'xyz.daimones:ktor-panel:0.4.0'
    }
 
 Maven
@@ -49,7 +49,7 @@ Maven
    <dependency>
        <groupId>xyz.daimones</groupId>
        <artifactId>ktor-panel</artifactId>
-       <version>0.3.2</version>
+       <version>0.4.0</version>
    </dependency>
 
 Quick Start

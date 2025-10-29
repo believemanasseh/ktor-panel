@@ -17,7 +17,12 @@ The ``DataAccessObjectInterface`` defines the contract for custom DAOs. Here is 
 .. code:: kotlin
 
   interface DataAccessObjectInterface<T> {
-      suspend fun findById(id: Any): T?
+      suspend fun findById(id: castToEntityId: Boolean): T? {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+      }
+      suspend fun findById(id: Any): T? {
+        throw NotImplementedError("This method is not implemented for this DAO.")
+      }
       suspend fun findAll(): List<T?>
       suspend fun find(username: String): T?
       suspend fun save(data: Map<String, Any>): T {

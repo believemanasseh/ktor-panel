@@ -18,6 +18,7 @@ The ``Configuration`` class allows you to customise the admin panel:
 - ``customDeleteTemplate``: Path to a custom delete template (default is ``kt-panel-delete.hbs``).
 - ``favicon``: Path to a custom favicon (default is ``/static/favicon.ico``).
 - ``templateRenderer``: Custom template renderer (default is Mustache).
+- ``listFields``: List of fields to display in the list view. If null (by default), all fields will be shown.
 
 .. code-block:: kotlin
 

@@ -32,7 +32,7 @@ Define your entities using Exposed's DSL and register them:
    fun Application.module() {
        val configuration = Configuration(setAuthentication = false)
        val admin = Admin(this, configuration, database)
-       admin.addView(EntityView(User::class))
+       admin.addView(EntityView(Users::class))
    }
 
 Hibernate (JPA)
