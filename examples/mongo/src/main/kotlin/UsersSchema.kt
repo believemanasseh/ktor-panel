@@ -5,6 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
 import xyz.daimones.ktor.panel.database.FileUploadField
+import xyz.daimones.ktor.panel.database.UpdateField
 import xyz.daimones.ktor.panel.database.serialization.LocalDateTimeSerializer
 import java.time.LocalDateTime
 
@@ -24,6 +25,7 @@ data class User(
     val image: String? = null,
     @Serializable(with = LocalDateTimeSerializer::class)
     val created: LocalDateTime = LocalDateTime.now(),
+    @UpdateField
     @Serializable(with = LocalDateTimeSerializer::class)
     val modified: LocalDateTime = LocalDateTime.now()
 )

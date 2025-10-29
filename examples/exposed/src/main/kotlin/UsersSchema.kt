@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.javatime.datetime
 import xyz.daimones.ktor.panel.database.FileUploadField
 import xyz.daimones.ktor.panel.database.PasswordField
+import xyz.daimones.ktor.panel.database.UpdateField
 import java.time.LocalDateTime
 
 enum class Role { SUPER_ADMIN, EDITOR, VIEWER }
@@ -27,6 +28,8 @@ object Users : IntIdTable() {
     var blobing = blob("blobing")
     val isActive: Column<Boolean> = bool("is_active").default(false)
     val created: Column<LocalDateTime> = datetime("created").default(LocalDateTime.now())
+
+    @UpdateField
     val modified: Column<LocalDateTime> = datetime("modified").default(LocalDateTime.now())
 }
 
