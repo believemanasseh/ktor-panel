@@ -34,7 +34,7 @@ object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
                     val bsonValue = decoder.decodeBsonValue()
                     val millis = bsonValue.asDateTime().value
                     val ldt = java.time.Instant.ofEpochMilli(millis)
-                        .atZone(java.time.ZoneId.systemDefault())
+                        .atZone(java.time.ZoneOffset.UTC)
                         .toLocalDateTime()
                     LocalDateTime.parse(ldt.toString(), formatter)
                 }
