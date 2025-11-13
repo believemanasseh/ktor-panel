@@ -92,6 +92,7 @@ class Admin(
             database = this.database,
             entityManagerFactory = this.entityManagerFactory
         )
+        view.clear()
     }
 
     /**
@@ -117,6 +118,7 @@ class Admin(
                 database = this.database,
                 entityManagerFactory = this.entityManagerFactory
             )
+            view.clear()
         }
     }
 

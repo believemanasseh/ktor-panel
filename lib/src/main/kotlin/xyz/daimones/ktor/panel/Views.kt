@@ -13,7 +13,7 @@ import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.Id
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.bson.types.ObjectId
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.JavaLocalDateColumnType
@@ -1346,6 +1346,9 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      * @throws IllegalArgumentException if neither database nor entityManagerFactory is provided
      */
+
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun configurePageViews(
         application: Application,
         configuration: Configuration,
@@ -1371,7 +1374,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         }
         super.headers = super.setHeaders(configuration)
 
-        this.setAuthentication(configuration, entityManagerFactory)
+        this.setAuthentication(application, configuration, entityManagerFactory)
         this.exposeIndexView(
             configuration,
             mapOf(
@@ -1435,50 +1438,59 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
      * @param configuration The configuration settings for the admin panel
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      */
-    private fun setAuthentication(configuration: Configuration, entityManagerFactory: EntityManagerFactory?) {
+    private fun setAuthentication(
+        application: Application,
+        configuration: Configuration,
+        entityManagerFactory: EntityManagerFactory?
+    ) {
         if (configuration.setAuthentication) {
-            runBlocking {
-                var existingAdminUser: Any? = null
-                val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
-                if (super.driverType == DriverType.EXPOSED) {
-                    // Create the AdminUser table if it doesn't exist
-                    val dao = ExposedDao(database as Database, AdminUsers::class)
-                    dao.createTable()
-
-                    // Create the admin user if it doesn't exist
-                    existingAdminUser = dao.find(configuration.adminUsername)
-                    if (existingAdminUser == null) {
-                        val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
-                        dao.save(entity)
-                    }
-                } else {
-                    // Create the AdminUser table if it doesn't exist
-                    if (driverType == DriverType.JPA) {
-                        val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
+            scope.launch {
+                runCatching {
+                    var existingAdminUser: Any? = null
+                    val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
+                    if (super.driverType == DriverType.EXPOSED) {
+                        // Create the AdminUser table if it doesn't exist
+                        val dao = ExposedDao(database as Database, AdminUsers::class)
                         dao.createTable()
-                        existingAdminUser = dao.find(configuration.adminUsername)
-                    } else if (driverType == DriverType.MONGO) {
-                        val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
-                        dao.createTable()
-                        existingAdminUser = dao.find(configuration.adminUsername)
-                    }
 
-                    // Create the admin user if it doesn't exist
-                    if (existingAdminUser == null) {
-                        if (driverType == DriverType.JPA) {
-                            val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
-                            val entity = JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
-                            dao.save(entity)
-                        } else if (driverType == DriverType.MONGO) {
-                            val entity = MongoAdminUser(
-                                ObjectId(),
-                                username = configuration.adminPassword,
-                                password = hashedPassword
-                            )
-                            val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
+                        // Create the admin user if it doesn't exist
+                        existingAdminUser = dao.find(configuration.adminUsername)
+                        if (existingAdminUser == null) {
+                            val entity = mapOf("username" to configuration.adminUsername, "password" to hashedPassword)
                             dao.save(entity)
                         }
+                    } else {
+                        // Create the AdminUser table if it doesn't exist
+                        if (driverType == DriverType.JPA) {
+                            val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
+                            dao.createTable()
+                            existingAdminUser = dao.find(configuration.adminUsername)
+                        } else if (driverType == DriverType.MONGO) {
+                            val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
+                            dao.createTable()
+                            existingAdminUser = dao.find(configuration.adminUsername)
+                        }
+
+                        // Create the admin user if it doesn't exist
+                        if (existingAdminUser == null) {
+                            if (driverType == DriverType.JPA) {
+                                val dao = JpaDao(entityManagerFactory!!, JpaAdminUser::class)
+                                val entity =
+                                    JpaAdminUser(username = configuration.adminUsername, password = hashedPassword)
+                                dao.save(entity)
+                            } else if (driverType == DriverType.MONGO) {
+                                val entity = MongoAdminUser(
+                                    ObjectId(),
+                                    username = configuration.adminPassword,
+                                    password = hashedPassword
+                                )
+                                val dao = MongoDao(database as MongoDatabase, MongoAdminUser::class)
+                                dao.save(entity)
+                            }
+                        }
                     }
+                }.onFailure {
+                    application.log.error("Failed to set up authentication", it)
                 }
 
                 // Expose authentication views
@@ -1486,5 +1498,14 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
                 this@EntityView.exposeLogoutView(configuration, mutableMapOf("configuration" to configuration))
             }
         }
+    }
+
+    /**
+     * Clears the coroutine scope to cancel any ongoing operations.
+     *
+     * This method is useful for cleaning up resources when the EntityView is no longer needed.
+     */
+    fun clear() {
+        scope.cancel()
     }
 }
