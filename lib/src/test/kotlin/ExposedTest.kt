@@ -5,7 +5,6 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.EntityView
-import xyz.daimones.ktor.panel.database.entities.AdminUser
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -25,7 +24,7 @@ class ExposedTest {
         application {
             val configuration = Configuration(setAuthentication = false)
             val admin = Admin(this, configuration, database)
-            admin.addView(EntityView(AdminUser::class))
+            admin.addView(EntityView(AdminUsers::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
         }
     }
