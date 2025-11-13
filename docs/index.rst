@@ -77,8 +77,7 @@ Basic Setup
        val admin = Admin(this, config, database)
 
        // Add your entities to the admin panel
-       admin.addView(EntityView(User::class))
-       admin.addView(EntityView(Product::class))
+       admin.addViews(EntityView(User::class), EntityView(Product::class))
    }
 
 Add to your Ktor application
