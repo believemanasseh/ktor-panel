@@ -73,7 +73,7 @@ fun Application.configureAdminPanel(database: Database) {
     val admin = Admin(this, config, database)
 
     // Add your entities to the admin panel 
-  admin.addViews(EntityView(User::class), EntityView(Product::class))
+  admin.addViews(EntityView(Users::class), EntityView(Products::class))
 }
 ```
 
