@@ -21,6 +21,6 @@ fun Application.module() {
     val configuration = Configuration(setAuthentication = true, listFields = listOf("email", "isActive"))
     val admin =
         Admin(this, configuration, database as MongoDatabase)
-    admin.addView(EntityView(User::class))
+    admin.addViews(arrayOf(EntityView(User::class), EntityView(Truth::class)))
 }
 

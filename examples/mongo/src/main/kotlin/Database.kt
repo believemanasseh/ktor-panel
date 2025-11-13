@@ -33,5 +33,13 @@ suspend fun Application.configureDatabase(): MongoDatabase {
     val res = collection.insertOne(user)
     println("Inserted user with id: ${res.insertedId}")
 
+    val collection1 = database.getCollection<Truth>("truth")
+    val truth = Truth(
+        email = "test2@email.com",
+        value = "The sky is blue"
+    )
+    val res1 = collection1.insertOne(truth)
+    println("Inserted truth with id: ${res1.insertedId}")
+
     return database
 }
