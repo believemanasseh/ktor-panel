@@ -28,7 +28,7 @@ Try the live demo here: [https://ktor-panel.daimones.xyz](https://ktor-panel.dai
 
 ```kotlin
 dependencies {
-  implementation("xyz.daimones:ktor-panel:0.4.0")
+  implementation("xyz.daimones:ktor-panel:0.4.1")
 }
 ```
 
@@ -36,7 +36,7 @@ dependencies {
 
 ```groovy
 dependencies {
-  implementation 'xyz.daimones:ktor-panel:0.4.0'
+  implementation 'xyz.daimones:ktor-panel:0.4.1'
 }
 ```
 
@@ -47,7 +47,7 @@ dependencies {
 <dependency>
     <groupId>xyz.daimones</groupId>
     <artifactId>ktor-panel</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
 </dependency>
 ```
 
@@ -73,8 +73,7 @@ fun Application.configureAdminPanel(database: Database) {
     val admin = Admin(this, config, database)
 
     // Add your entities to the admin panel 
-    admin.addView(EntityView(User::class))
-    admin.addView(EntityView(Product::class))
+  admin.addViews(EntityView(User::class), EntityView(Product::class))
 }
 ```
 

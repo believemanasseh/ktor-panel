@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.1] - 2025-11-13
+
+### Fixed
+
+- Fixed issue where registering multiple entities caused endpoints to be exposed multiple times, but only the first
+  registration was effective due to Ktor routing behavior.
+- Resolved runtime classpath issues related to Exposed
+  dependencies ([#8](https://github.com/believemanasseh/ktor-panel/issues/8)).
+
+### Changed
+
+- Added custom annotation `@EntityName` to specify custom MongoDB collection names for entity classes.
+
 ## [0.4.0] - 2025-10-30
 
 ### Added
