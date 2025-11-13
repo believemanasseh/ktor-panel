@@ -301,7 +301,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
      *
      * @return A list of maps where each map represents a record with its ID and column values
      */
-    private suspend fun getTableDataValues(configuration: Configuration): List<Map<String, Any?>?> {
+    internal suspend fun getTableDataValues(configuration: Configuration): List<Map<String, Any?>?> {
         if (driverType == DriverType.EXPOSED) {
             @Suppress("UNCHECKED_CAST")
             dao!!.findAll() as List<ResultRow>
@@ -335,6 +335,7 @@ open class BaseView<T : Any>(private val entityKClass: KClass<T>) {
                     ) {
                         return@forEach
                     }
+
                     val value = property.call(entity)
                     val actualValue = if (value is LocalDateTime) {
                         value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
@@ -1340,6 +1341,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
      * @param application The Ktor application instance for setting up routes
      * @param configuration Configuration settings for the admin panel
      * @param tableNames List of table names to be managed in the admin panel
+     * @param currentTableName The name of the current table being processed
      * @param database The database connection to be used for data access
      * @param entityManagerFactory Optional JPA EntityManagerFactory for JPA-based data access
      * @throws IllegalArgumentException if neither database nor entityManagerFactory is provided
@@ -1348,6 +1350,7 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         application: Application,
         configuration: Configuration,
         tableNames: MutableList<String>,
+        currentTableName: String,
         database: Any?,
         entityManagerFactory: EntityManagerFactory?
     ) {
@@ -1369,7 +1372,6 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
         super.headers = super.setHeaders(configuration)
 
         this.setAuthentication(configuration, entityManagerFactory)
-
         this.exposeIndexView(
             configuration,
             mapOf(
@@ -1379,60 +1381,47 @@ class EntityView<T : Any>(val entityKClass: KClass<T>) : BaseView<T>(entityKClas
             )
         )
 
-        // Determine the entity name based on the type of entity class provided
-        val entity = when (super.driverType) {
-            DriverType.EXPOSED -> (this.entityKClass.objectInstance as Table).tableName
-            DriverType.JPA, DriverType.MONGO -> this.entityKClass.simpleName
-                ?: throw IllegalArgumentException("Entity must have a simple name")
-        }
+        for (tableName in tableNames) {
+            if (tableName != currentTableName) continue
 
-        // Use the entity name to determine the path for delete, list, create, and details views
-        val entityPath = when (super.driverType) {
-            DriverType.EXPOSED -> (this.entityKClass.objectInstance as Table).tableName.lowercase()
-            DriverType.JPA, DriverType.MONGO -> this.entityKClass.simpleName?.lowercase()
-                ?: throw IllegalArgumentException("Entity must have a simple name")
-        }
+            this.exposeDeleteView(
+                configuration,
+                mutableMapOf(
+                    "configuration" to configuration,
+                    "entity" to tableName.replaceFirstChar(Char::titlecase),
+                    "entityPath" to tableName.lowercase()
+                ),
+                entityPath = tableName.lowercase()
+            )
 
-        this.exposeDeleteView(
-            configuration,
-            mutableMapOf(
-                "tables" to tableNames.map { it.lowercase() },
-                "configuration" to configuration,
-                "entity" to entity,
-                "entityPath" to entityPath
-            ),
-            entityPath = entityPath
-        )
-
-        for (table in tableNames) {
             this.exposeListView(
                 configuration,
                 mutableMapOf(
                     "configuration" to configuration,
-                    "tableName" to table,
-                    "tableNameLowercased" to table.lowercase(),
+                    "tableName" to tableName.replaceFirstChar(Char::titlecase),
+                    "tableNameLowercased" to tableName.lowercase(),
                 ),
-                entityPath = table.lowercase()
+                entityPath = tableName.lowercase()
             )
             this.exposeCreateView(
                 configuration,
                 mutableMapOf(
-                    "entity" to table,
+                    "entity" to tableName.replaceFirstChar(Char::titlecase),
                     "configuration" to configuration,
-                    "tableName" to table,
-                    "tableNameLowercased" to table.lowercase(),
-                    "entityPath" to table.lowercase()
+                    "tableName" to tableName.replaceFirstChar(Char::titlecase),
+                    "tableNameLowercased" to tableName.lowercase(),
+                    "entityPath" to tableName.lowercase()
                 ),
-                entityPath = table.lowercase()
+                entityPath = tableName.lowercase()
             )
             this.exposeDetailsView(
                 configuration,
                 mutableMapOf(
-                    "entity" to table,
+                    "entity" to tableName.replaceFirstChar(Char::titlecase),
                     "configuration" to configuration,
-                    "entityPath" to table.lowercase()
+                    "entityPath" to tableName.lowercase()
                 ),
-                entityPath = table.lowercase()
+                entityPath = tableName.lowercase()
             )
         }
     }

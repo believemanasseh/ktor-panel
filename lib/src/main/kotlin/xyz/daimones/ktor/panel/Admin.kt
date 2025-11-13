@@ -3,12 +3,12 @@ package xyz.daimones.ktor.panel
 import com.github.mustachejava.DefaultMustacheFactory
 import io.ktor.server.application.*
 import io.ktor.server.mustache.*
-import jakarta.persistence.Entity
 import jakarta.persistence.EntityManagerFactory
-import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.Table
+import xyz.daimones.ktor.panel.database.EntityName
 import java.io.Reader
+import kotlin.reflect.full.findAnnotation
+import jakarta.persistence.Table as JpaTable
 
 /**
  * Base admin class for the Ktor Panel library.
@@ -81,24 +81,14 @@ class Admin(
      * @param view EntityView instance to be added to the admin panel
      */
     fun addView(view: EntityView<*>) {
-        val entityKClass = view.entityKClass
-        val hasEntityAnnotation = entityKClass.annotations.any { it is Entity }
-        val hasSerializableAnnotation = entityKClass.annotations.any { it is Serializable }
-
-        val tableName = if (database is Database) {
-            (entityKClass.objectInstance as Table).tableName
-        } else if (hasEntityAnnotation || hasSerializableAnnotation || entityKClass.isData) {
-            entityKClass.simpleName.toString()
-        } else {
-            throw IllegalArgumentException("Entity must be an IntEntity, Data Class or annotated with @Entity or @Serializable")
-        }
-        this.tableNames.add(tableName)
+        val tableName = getTableName(view)
         this.entityViews.add(view)
-
+        this.tableNames.add(tableName)
         view.configurePageViews(
             application = this.application,
             configuration = this.configuration,
             tableNames = this.tableNames,
+            currentTableName = tableName,
             database = this.database,
             entityManagerFactory = this.entityManagerFactory
         )
@@ -107,15 +97,53 @@ class Admin(
     /**
      * Adds multiple entity views to the admin panel.
      *
-     * This method iteratively adds each view in the provided list by calling [addView]
+     * This method iteratively adds each view in the provided list by calling [EntityView.configurePageViews]
      * for each element.
      *
      * @param views Array containing entity views to be added to the admin panel
      */
     fun addViews(views: Array<EntityView<*>>) {
         for (view in views) {
-            this.addView(view)
+            val tableName = getTableName(view)
+            this.entityViews.add(view)
+            this.tableNames.add(tableName)
         }
+        for ((index, view) in views.withIndex()) {
+            view.configurePageViews(
+                application = this.application,
+                configuration = this.configuration,
+                tableNames = this.tableNames,
+                currentTableName = this.tableNames[index],
+                database = this.database,
+                entityManagerFactory = this.entityManagerFactory
+            )
+        }
+    }
+
+    /**
+     * Retrieves the table name associated with the given entity view.
+     *
+     * This method determines the table name based on the type of database being used
+     * (by checking the class of the provided database or entity manager factory).
+     *
+     * @param view The EntityView instance for which to retrieve the table name
+     * @return The name of the table associated with the entity view
+     * @throws IllegalArgumentException if neither database nor entityManagerFactory is provided
+     */
+    private fun getTableName(view: EntityView<*>): String {
+        val entityKClass = view.entityKClass
+        val tableName = if (database != null && database::class.qualifiedName == "org.jetbrains.exposed.sql.Database") {
+            (entityKClass.objectInstance as Table).tableName
+        } else if (database != null && database::class.qualifiedName == "com.mongodb.kotlin.client.coroutine.MongoDatabase") {
+            val collectionNameAnnotation = entityKClass.findAnnotation<EntityName>()
+            collectionNameAnnotation?.name ?: entityKClass.simpleName.toString()
+        } else if (entityManagerFactory != null && entityManagerFactory::class.qualifiedName == "org.hibernate.internal.SessionFactoryImpl") {
+            val tableAnnotation = entityKClass.findAnnotation<JpaTable>()
+            tableAnnotation?.name ?: entityKClass.simpleName.toString()
+        } else {
+            throw IllegalArgumentException("Database, MongoDatabase or EntityManagerFactory must be provided to add an EntityView")
+        }
+        return tableName
     }
 }
 
