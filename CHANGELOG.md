@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2025-11-13
+
+### Changed
+
+- Make async calls not block the main thread using CoroutineScope with Dispatchers.IO for database operations.
+
 ## [0.4.1] - 2025-11-13
 
 ### Fixed
