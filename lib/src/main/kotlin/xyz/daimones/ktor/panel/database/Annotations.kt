@@ -19,3 +19,7 @@ annotation class DateField
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class UpdateField
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class EntityName(val name: String)
