@@ -12,20 +12,31 @@ import kotlin.test.assertEquals
 
 class ExposedTest {
     private lateinit var database: Database
+    private lateinit var configuration: Configuration
 
     @BeforeTest
     fun setup() {
         database = Database.connect(url = "jdbc:h2:mem:exposed_test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
         transaction(database) { SchemaUtils.create(AdminUsers) }
+        configuration = Configuration(setAuthentication = false)
     }
 
     @Test
     fun testAdminInit() = testApplication {
         application {
-            val configuration = Configuration(setAuthentication = false)
             val admin = Admin(this, configuration, database)
             admin.addView(EntityView(AdminUsers::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+        }
+    }
+
+    @Test
+    fun testGetTableName() = testApplication {
+        application {
+            val admin = Admin(this, configuration, database)
+            val entityView = EntityView(AdminUsers::class)
+            val tableName = admin.getTableName(entityView)
+            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
         }
     }
 }

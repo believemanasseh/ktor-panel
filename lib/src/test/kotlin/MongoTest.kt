@@ -21,6 +21,7 @@ class MongoTest {
     private lateinit var database: MongoDatabase
     private lateinit var serverAddress: ServerAddress
     private lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
+    private lateinit var configuration: Configuration
 
     @BeforeTest
     fun setup() {
@@ -33,16 +34,26 @@ class MongoTest {
         val uri = "mongodb://${serverAddress.host}:${serverAddress.port}"
         val mongoClient = MongoClient.create(uri)
         database = mongoClient.getDatabase("test")
+        configuration = Configuration(setAuthentication = false)
     }
 
     @Test
     fun testAdminInit() = testApplication {
         application {
-            val configuration = Configuration(setAuthentication = false)
             val admin =
                 Admin(this, configuration, database)
             admin.addView(EntityView(MongoAdminUser::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+        }
+    }
+
+    @Test
+    fun testGetTableName() = testApplication {
+        application {
+            val admin = Admin(this, configuration, database)
+            val entityView = EntityView(MongoAdminUser::class)
+            val tableName = admin.getTableName(entityView)
+            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
         }
     }
 

@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 
 class JpaTest {
     private lateinit var entityManagerFactory: EntityManagerFactory
+    private lateinit var configuration: Configuration
 
     @BeforeTest
     fun setup() {
@@ -25,16 +26,26 @@ class JpaTest {
                 .jdbcPoolSize(16)
                 .showSql(true, true, true)
                 .createEntityManagerFactory()
+        configuration = Configuration(setAuthentication = false)
     }
 
     @Test
     fun testAdminInit() = testApplication {
         application {
-            val configuration = Configuration(setAuthentication = false)
             val admin =
                 Admin(application = this, configuration = configuration, entityManagerFactory = entityManagerFactory)
             admin.addView(EntityView(JpaAdminUser::class))
             assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+        }
+    }
+
+    @Test
+    fun testGetTableName() = testApplication {
+        application {
+            val admin = Admin(this, configuration, entityManagerFactory = entityManagerFactory)
+            val entityView = EntityView(JpaAdminUser::class)
+            val tableName = admin.getTableName(entityView)
+            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
         }
     }
 }
