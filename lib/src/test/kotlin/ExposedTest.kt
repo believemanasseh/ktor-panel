@@ -50,13 +50,16 @@ class ExposedTest {
         dao = ExposedDao(database, AdminUsers::class)
         createUser()
         val entity = dao.findById(1, true)
-        println("Entity: $entity")
         (AdminUsers::class.objectInstance as Table).columns.forEach { column ->
             @Suppress("UNCHECKED_CAST")
             val value = (entity as Map<String, Any?>)[column.name]
-            println("Column: ${column.name}, Value: $value")
+
             if (column.name == "id") {
                 assertEquals(1, value.toString().toInt(), "ID should be 1")
+            }
+
+            if (column.name == "username") {
+                assertEquals(configuration.adminUsername, value, "Username should match the created user")
             }
         }
     }
