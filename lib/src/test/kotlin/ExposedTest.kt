@@ -12,7 +12,6 @@ import xyz.daimones.ktor.panel.database.dao.ExposedDao
 import xyz.daimones.ktor.panel.database.entities.AdminUsers
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class ExposedTest {
     private lateinit var database: Database
@@ -31,7 +30,9 @@ class ExposedTest {
         application {
             val admin = Admin(this, configuration, database)
             admin.addView(EntityView(AdminUsers::class))
-            assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+            assert(1 == admin.countEntityViews()) {
+                "Admin should have one entity view registered"
+            }
         }
     }
 
@@ -41,7 +42,9 @@ class ExposedTest {
             val admin = Admin(this, configuration, database)
             val entityView = EntityView(AdminUsers::class)
             val tableName = admin.getTableName(entityView)
-            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
+            assert("admin_users" == tableName) {
+                "Table name should match the entity's table name"
+            }
         }
     }
 
@@ -55,11 +58,19 @@ class ExposedTest {
             val value = (entity as Map<String, Any?>)[column.name]
 
             if (column.name == "id") {
-                assertEquals(1, value.toString().toInt(), "ID should be 1")
+                assert(1 == value.toString().toInt()) { "ID should be 1" }
             }
 
             if (column.name == "username") {
-                assertEquals(configuration.adminUsername, value, "Username should match the created user")
+                assert(configuration.adminUsername == value) {
+                    "Username should match the created user"
+                }
+            }
+
+            if (column.name == "password") {
+                assert(BCrypt.checkpw(configuration.adminPassword, value.toString())) {
+                    "Password should match the created user's password"
+                }
             }
         }
     }

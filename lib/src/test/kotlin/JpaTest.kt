@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter
 import kotlin.reflect.full.memberProperties
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class JpaTest {
     private lateinit var entityManagerFactory: EntityManagerFactory
@@ -42,7 +41,9 @@ class JpaTest {
             val admin =
                 Admin(application = this, configuration = configuration, entityManagerFactory = entityManagerFactory)
             admin.addView(EntityView(JpaAdminUser::class))
-            assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+            assert(1 == admin.countEntityViews()) {
+                "Admin should have one entity view registered"
+            }
         }
     }
 
@@ -52,7 +53,9 @@ class JpaTest {
             val admin = Admin(this, configuration, entityManagerFactory = entityManagerFactory)
             val entityView = EntityView(JpaAdminUser::class)
             val tableName = admin.getTableName(entityView)
-            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
+            assert("admin_users" == tableName) {
+                "Table name should match the entity's table name"
+            }
         }
     }
 
@@ -70,15 +73,13 @@ class JpaTest {
             }
 
             if (property.name == "id") {
-                assertEquals(1, actualValue.toString().toInt(), "ID should be 1")
+                assert(1 == actualValue.toString().toInt()) { "ID should be 1" }
             }
 
             if (property.name == "username") {
-                assertEquals(
-                    configuration.adminUsername,
-                    actualValue,
+                assert(configuration.adminUsername == actualValue) {
                     "Username should match the created user"
-                )
+                }
             }
 
             if (property.name == "password") {

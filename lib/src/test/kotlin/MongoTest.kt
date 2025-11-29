@@ -7,14 +7,18 @@ import de.flapdoodle.embed.mongo.transitions.Mongod
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
 import de.flapdoodle.reverse.TransitionWalker
 import io.ktor.server.testing.*
+import kotlinx.coroutines.runBlocking
+import org.bson.types.ObjectId
+import org.mindrot.jbcrypt.BCrypt
 import xyz.daimones.ktor.panel.Admin
 import xyz.daimones.ktor.panel.Configuration
 import xyz.daimones.ktor.panel.EntityView
+import xyz.daimones.ktor.panel.database.dao.MongoDao
 import xyz.daimones.ktor.panel.database.entities.MongoAdminUser
+import kotlin.reflect.full.memberProperties
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 
 class MongoTest {
@@ -22,6 +26,8 @@ class MongoTest {
     private lateinit var serverAddress: ServerAddress
     private lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
     private lateinit var configuration: Configuration
+    private lateinit var dao: MongoDao<MongoAdminUser>
+    private lateinit var id: ObjectId
 
     @BeforeTest
     fun setup() {
@@ -43,7 +49,9 @@ class MongoTest {
             val admin =
                 Admin(this, configuration, database)
             admin.addView(EntityView(MongoAdminUser::class))
-            assertEquals(1, admin.countEntityViews(), "Admin should have one entity view registered")
+            assert(1 == admin.countEntityViews()) {
+                "Admin should have one entity view registered"
+            }
         }
     }
 
@@ -53,7 +61,49 @@ class MongoTest {
             val admin = Admin(this, configuration, database)
             val entityView = EntityView(MongoAdminUser::class)
             val tableName = admin.getTableName(entityView)
-            assertEquals("admin_users", tableName, "Table name should match the entity's table name")
+            assert("admin_users" == tableName) {
+                "Table name should match the entity's table name"
+            }
+        }
+    }
+
+    @Test
+    fun testDaoFindById() = testApplication {
+        dao = MongoDao(database, MongoAdminUser::class)
+        createUser()
+        val entity = dao.findById(id)
+        MongoAdminUser::class.memberProperties.forEach { property ->
+            val value = property.get(entity)
+
+            if (property.name == "id") {
+                assert(value is ObjectId) { "ID should be of type ObjectId" }
+            }
+
+            if (property.name == "username") {
+                assert(value == configuration.adminPassword) {
+                    "Username should match the created user's username"
+                }
+            }
+
+            if (property.name == "password") {
+                assert(BCrypt.checkpw(configuration.adminPassword, value.toString())) {
+                    "Password should match the created user's password"
+                }
+            }
+        }
+    }
+
+    fun createUser() {
+        runBlocking {
+            dao.createTable()
+            id = ObjectId()
+            val hashedPassword = BCrypt.hashpw(configuration.adminPassword, BCrypt.gensalt())
+            val entity = MongoAdminUser(
+                id = id,
+                username = configuration.adminPassword,
+                password = hashedPassword
+            )
+            dao.save(entity)
         }
     }
 
